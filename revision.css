@@ -1,0 +1,113 @@
+/* ==========================================================================
+   Herramientas de revisión del prototipo — ELIMINAR EN PRODUCCIÓN
+   ========================================================================== */
+.rev-boton {
+  position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 100;
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, .18); border-radius: 999px;
+  background: #151A22; color: #fff; cursor: pointer;
+  font: 700 .82rem/1 "Schibsted Grotesk", system-ui, sans-serif; letter-spacing: .02em;
+  box-shadow: 0 10px 26px -10px rgba(0, 0, 0, .6);
+  transition: transform .2s, background-color .2s;
+}
+.rev-boton:hover { transform: translateY(-2px); background: #232A35; }
+.rev-boton:focus-visible { outline: 3px solid #F5B301; outline-offset: 3px; }
+.rev-boton__punto { width: 9px; height: 9px; border-radius: 50%; background: #F5B301; box-shadow: 0 0 0 3px rgba(245, 179, 1, .25); }
+.rev-boton[aria-expanded="true"] { background: #F5B301; color: #151A22; left: calc(min(440px, 100vw) + 16px); z-index: 160; }
+.rev-boton[aria-expanded="true"] .rev-boton__punto { background: #151A22; box-shadow: none; }
+
+.rev-panel {
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 155;
+  width: min(440px, 100vw); display: flex; flex-direction: column;
+  background: #FBFAF8; color: #1B2230; border-right: 1px solid #E3DFD7;
+  box-shadow: 20px 0 50px -30px rgba(0, 0, 0, .5);
+  font: 400 .9rem/1.5 "Schibsted Grotesk", system-ui, sans-serif;
+  color-scheme: light;
+  animation: rev-entra .35s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes rev-entra { from { transform: translateX(-24px); opacity: 0; } }
+.rev-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 20px 20px 12px; }
+.rev-kicker { margin: 0; font-size: .7rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #8A6D1E; }
+.rev-cabeza h2 { margin: 4px 0 0; font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 900; font-stretch: 80%; font-size: 1.55rem; line-height: 1; text-transform: uppercase; }
+.rev-cerrar { width: 36px; height: 36px; flex: none; border: 1px solid #D9D4CA; border-radius: 50%; background: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer; color: #1B2230; }
+.rev-cerrar:hover { background: #151A22; color: #fff; }
+.rev-cerrar:focus-visible, .rev-tabs button:focus-visible, .rev-notas button:focus-visible, .rev-marcas button:focus-visible, .rev-switch input:focus-visible + span { outline: 3px solid #1F7FC4; outline-offset: 2px; }
+.rev-tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid #E3DFD7; }
+.rev-tabs button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 10px 12px; border: 0; border-bottom: 3px solid transparent; background: none; cursor: pointer; font: 700 .82rem/1 "Schibsted Grotesk", system-ui, sans-serif; color: #5B6473; }
+.rev-tabs button[aria-selected="true"] { color: #1B2230; border-bottom-color: #D42A31; }
+.rev-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #E8E4DC; color: #1B2230; font-size: .7rem; }
+.rev-badge--ambar { background: #FFF1CC; color: #7A5200; }
+.rev-cuerpo { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px 90px; }
+.rev-seccion h3 { margin: 22px 0 10px; font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #8A6D1E; }
+.rev-ayuda { margin: 10px 0 0; font-size: .8rem; color: #5B6473; }
+.rev-ayuda code, .rev-colores code, .rev-lista code { font-size: .78rem; background: #EFECE6; padding: 1px 5px; border-radius: 4px; }
+
+.rev-switch { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #E3DFD7; border-radius: 10px; background: #fff; font-weight: 600; cursor: pointer; }
+.rev-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.rev-switch span { position: relative; width: 38px; height: 22px; flex: none; border-radius: 999px; background: #CFCAC0; transition: background-color .2s; }
+.rev-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .25s cubic-bezier(.22, 1, .36, 1); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+.rev-switch input:checked + span { background: #D42A31; }
+.rev-switch input:checked + span::after { transform: translateX(16px); }
+
+.rev-notas { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.rev-notas button { display: grid; grid-template-columns: auto 1fr; gap: 10px; width: 100%; padding: 12px; border: 1px solid #E3DFD7; border-radius: 10px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: border-color .2s, transform .2s; }
+.rev-notas button:hover { border-color: #D42A31; transform: translateX(2px); }
+.rev-notas strong { display: block; margin-bottom: 2px; font-size: .88rem; }
+.rev-num, .rev-pin { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #D42A31; color: #fff; font: 800 .75rem/1 "Archivo", sans-serif; }
+
+.rev-pendientes, .rev-marcas, .rev-lista, .rev-colores { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rev-pendientes li { padding: 10px 12px; border-left: 3px solid #F5B301; background: #fff; border-radius: 0 8px 8px 0; font-size: .84rem; color: #414A59; }
+.rev-pendientes strong { display: block; color: #1B2230; font-size: .86rem; }
+.rev-marcas li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #FFF6DE; border-radius: 8px; font-size: .82rem; color: #5A4300; }
+.rev-marcas em { font-size: .74rem; color: #7A5200; white-space: nowrap; }
+.rev-marcas button { flex: none; padding: 5px 12px; border: 1px solid #7A5200; border-radius: 999px; background: #fff; color: #5A4300; font: 700 .76rem/1 "Schibsted Grotesk", sans-serif; cursor: pointer; }
+.rev-marcas button:hover { background: #7A5200; color: #fff; }
+
+.rev-colores { grid-template-columns: 1fr; }
+.rev-colores li { display: flex; align-items: center; gap: 12px; font-size: .82rem; }
+.rev-colores small { display: block; color: #5B6473; font-size: .75rem; }
+.rev-muestra { width: 40px; height: 40px; flex: none; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.rev-poste-demo { margin-top: 12px; padding: 14px; background: #0A1220; border-radius: 10px; display: grid; place-items: center; }
+
+.rev-tipo { display: grid; gap: 8px; padding: 14px; background: #fff; border: 1px solid #E3DFD7; border-radius: 10px; font-size: .82rem; color: #414A59; }
+.rev-tipo p { margin: 0; }
+.rev-tipo__display { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 72%; font-size: 2.6rem; line-height: .9; text-transform: uppercase; color: #0E1624; }
+.rev-tipo__display span { font-family: "Yellowtail", cursive; font-weight: 400; text-transform: none; color: #D42A31; font-size: .75em; margin-left: 6px; }
+
+.rev-demo { display: grid; gap: 12px; padding: 16px; background: #fff; border: 1px solid #E3DFD7; border-radius: 10px; }
+.rev-botones > div { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; }
+.rev-botones .btn { justify-self: start; pointer-events: none; }
+.rev-etq { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #5B6473; }
+.rev-demo .btn.rev-hover { transform: translateY(-2px); background: var(--btn-hover-bg); color: var(--btn-hover-fg); box-shadow: 0 14px 26px -14px var(--btn-sombra); }
+.rev-demo .btn.rev-hover .btn__flecha { transform: translateX(4px); }
+.rev-demo .btn.rev-active { transform: scale(.97); }
+.rev-demo .btn.rev-focus { outline: 3px solid var(--azul); outline-offset: 3px; }
+.rev-variantes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rev-variantes .btn { pointer-events: none; }
+.rev-oscuro { display: inline-flex; gap: 8px; padding: 8px; background: #0A1220; border-radius: 8px; }
+.rev-lista li { padding: 8px 0; border-bottom: 1px solid #E8E4DC; font-size: .84rem; color: #414A59; }
+.rev-lista strong { color: #1B2230; }
+
+/* Marcadores sobre la página */
+.rev-capa { position: fixed; inset: 0; z-index: 150; pointer-events: none; }
+.rev-pin { position: fixed; top: 0; left: 0; pointer-events: auto; border: 2px solid #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: pointer; transition: opacity .2s; }
+.rev-pin:hover { background: #151A22; }
+.rev-pin:focus-visible { outline: 3px solid #F5B301; outline-offset: 2px; }
+.rev-pop { position: fixed; top: 0; left: 0; z-index: 170; padding: 14px 16px 16px; border-radius: 12px; background: #151A22; color: #E7EAF0; box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .7); font: 400 .84rem/1.5 "Schibsted Grotesk", system-ui, sans-serif; }
+.rev-pop h4 { margin: 2px 0 6px; font-family: "Archivo", sans-serif; font-weight: 850; font-stretch: 85%; font-size: 1.05rem; text-transform: uppercase; color: #fff; padding-right: 28px; }
+.rev-pop p { margin: 0; }
+.rev-pop__num { font-size: .7rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #F5B301; }
+.rev-pop__cerrar { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 50%; background: none; color: #fff; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+
+.rev-destello { animation: rev-destello 1.6s ease-out; }
+@keyframes rev-destello { 0%, 60% { outline: 3px solid #F5B301; outline-offset: 4px; } 100% { outline: 3px solid rgba(245, 179, 1, 0); outline-offset: 10px; } }
+
+/* Resaltar pendientes */
+.rev-resaltar [data-pendiente] { outline: 2px dashed #E0A100 !important; outline-offset: 3px; }
+.rev-resaltar .chip-pendiente { box-shadow: 0 0 0 2px #E0A100; }
+
+@media (max-width: 640px) {
+  .rev-boton { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 0; }
+  .rev-boton__punto { width: 12px; height: 12px; }
+  .rev-boton[aria-expanded="true"] { display: none; }
+}

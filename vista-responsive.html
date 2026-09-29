@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es-DO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yeron Barbershop · Vista responsive</title>
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Schibsted+Grotesk:wght@400..800&display=swap">
+<style>
+  :root { color-scheme: dark; --noche: #0A1220; --vena: #C9B28A; --niebla: #AEB7C5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px clamp(16px, 3vw, 40px) 56px; background: #060A13; color: #fff; font-family: "Schibsted Grotesk", system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 28px; }
+  .eyebrow { margin: 0 0 8px; font-family: "Archivo", sans-serif; font-weight: 700; font-size: .75rem; letter-spacing: .22em; text-transform: uppercase; color: var(--vena); }
+  h1 { margin: 0; font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 900; font-stretch: 78%; font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1; text-transform: uppercase; }
+  header a { color: #fff; font-weight: 700; text-underline-offset: 4px; }
+  header a:focus-visible { outline: 3px solid #7CC0F2; outline-offset: 3px; }
+  .pantallas { display: grid; gap: 32px; }
+  .fila { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); gap: 32px; align-items: start; }
+  figure { margin: 0; min-width: 0; }
+  figure > figcaption { max-width: 100%; }
+  figcaption { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--niebla); }
+  .marco { position: relative; overflow: hidden; max-width: 100%; margin-inline: auto; border-radius: 14px; background: #111C2E; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 30px 60px -30px rgba(0, 0, 0, .9); }
+  .marco iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #F3F2EF; }
+  @media (max-width: 900px) { .fila { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <p class="eyebrow">Prototipo · WebDom</p>
+    <h1>Yeron Barbershop · escritorio, tablet y móvil</h1>
+  </div>
+  <a href="index.html">Abrir el sitio completo</a>
+</header>
+<div class="pantallas">
+  <figure data-ancho="1440" data-alto="900">
+    <figcaption><span>Escritorio</span><span>1440 × 900</span></figcaption>
+    <div class="marco"><iframe src="index.html#vista" title="Yeron Barbershop en escritorio (1440 px)"></iframe></div>
+  </figure>
+  <div class="fila">
+    <figure data-ancho="768" data-alto="1024">
+      <figcaption><span>Tablet</span><span>768 × 1024</span></figcaption>
+      <div class="marco"><iframe src="index.html#vista" title="Yeron Barbershop en tablet (768 px)" loading="lazy"></iframe></div>
+    </figure>
+    <figure data-ancho="390" data-alto="844">
+      <figcaption><span>Móvil</span><span>390 × 844</span></figcaption>
+      <div class="marco"><iframe src="index.html#vista" title="Yeron Barbershop en móvil (390 px)" loading="lazy"></iframe></div>
+    </figure>
+  </div>
+</div>
+<script>
+  const ajustar = () => {
+    document.querySelectorAll('figure[data-ancho]').forEach((f) => {
+      const ancho = Number(f.dataset.ancho);
+      const alto = Number(f.dataset.alto);
+      const marco = f.querySelector('.marco');
+      const escala = Math.min(1, f.clientWidth / ancho);
+      const iframe = marco.querySelector('iframe');
+      iframe.style.width = `${ancho}px`;
+      iframe.style.height = `${alto}px`;
+      iframe.style.transform = `scale(${escala})`;
+      marco.style.width = `${Math.round(ancho * escala)}px`;
+      marco.style.height = `${Math.round(alto * escala)}px`;
+    });
+  };
+  window.addEventListener('resize', ajustar);
+  ajustar();
+</script>
+</body>
+</html>

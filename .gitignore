@@ -1,0 +1,10 @@
+# Nunca subir
+.env
+.env.*
+.claude/
+.impeccable/
+.vercel/
+Claude outputs/
+node_modules/
+.DS_Store
+Thumbs.db
