@@ -14,7 +14,6 @@ Sitio de una página para **Yeron Barbershop** (Instagram [@yeron_barber](https:
 | `index.html` | Contenido, secciones, datos estructurados (JSON-LD) y sprite de íconos |
 | `styles.css` | Tokens, componentes, secciones, movimiento y responsive (1440 / 768 / 390) |
 | `script.js` | **Datos editables** (negocio, horario, 6 servicios, galería) e interacciones |
-| `revision.js` · `revision.css` | Herramientas de revisión: 20 anotaciones de movimiento, datos por confirmar y sistema de diseño. **Eliminar en producción** |
 | `vista-responsive.html` | Escritorio, tablet y móvil uno junto a otro |
 | `images/` | Fotos optimizadas (WebP), logo en versión clara y oscura, favicon e imagen para compartir |
 
@@ -177,6 +176,6 @@ Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agr
 ## Antes de publicar
 
 1. Confirmar los pendientes de arriba.
-2. Borrar `revision.js`, `revision.css` y sus dos líneas en `index.html`.
+2. (Hecho el 4-oct-2026) Herramientas de revisión eliminadas: `revision.js`, `revision.css` y sus líneas en `index.html`.
 3. Completar la dirección en el JSON-LD y usar una URL absoluta en `og:image` cuando haya dominio.
 4. Publicar solo cuando WebDom lo apruebe (sitio estático, sin build).
