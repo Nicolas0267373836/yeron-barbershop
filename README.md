@@ -53,7 +53,7 @@ Enlaces directos a cada servicio: `index.html#servicio-fade`, `#servicio-perfila
 | Perfil @yeron_barber, lema «Flow de la mata! 🇩🇴⚾️🔥», rubro barbería | Instagram (revisión del usuario, sept. 2026) |
 | Horario lunes a viernes, 8:00 a. m.–9:00 p. m. | Instagram |
 | WhatsApp +1 829-337-4594 | Instagram |
-| «Av. Presidente Enríquez, al lado de Plaza Jorge» | Instagram. **Falta la ciudad y la referencia completa** |
+| «Av. Presidente Enríquez, al lado de Plaza Jorge», San Pedro de Macorís | Instagram y usuario (8-oct-2026: ciudad y referencia confirmadas). **Falta confirmar la ortografía de la avenida** |
 | 350 publicaciones y 2,707 seguidores | Instagram al momento de la revisión. En la página: «350+» y «2,700+» |
 | Miércoles 100 % a domicilio, RD$1,000, el precio se cotiza según la distancia | Publicación de Instagram indicada por el usuario |
 | Ha recortado a figuras reconocidas | Usuario |
@@ -77,7 +77,7 @@ Las fotos vienen de Instagram (máx. 1024 px). Se optimizaron a WebP sin cambiar
 
 ## Pendiente de confirmar con Yeron
 
-- Ciudad y punto de referencia completo de la dirección; si la avenida es «Enríquez» o «Henríquez».
+- Si la avenida es «Enríquez» o «Henríquez» (ciudad y referencia ya confirmadas: San Pedro de Macorís, al lado de Plaza Jorge).
 - Pin o enlace de Google Maps (hoy el botón pide la ubicación por WhatsApp).
 - Horario de sábado y domingo.
 - Hora del domicilio de los miércoles (la reserva ofrece de 8:00 a. m. a 8:00 p. m.).
@@ -177,5 +177,5 @@ Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agr
 
 1. Confirmar los pendientes de arriba.
 2. (Hecho el 4-oct-2026) Herramientas de revisión eliminadas: `revision.js`, `revision.css` y sus líneas en `index.html`.
-3. Completar la dirección en el JSON-LD y usar una URL absoluta en `og:image` cuando haya dominio.
+3. (Dirección del JSON-LD completa con la ciudad.) Usar una URL absoluta en `og:image` cuando haya dominio.
 4. Publicar solo cuando WebDom lo apruebe (sitio estático, sin build).

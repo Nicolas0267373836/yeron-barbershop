@@ -15,7 +15,7 @@
     whatsapp: '18293374594',               // wa.me: código de país + número, sin «+»
     whatsappVisible: '+1 829-337-4594',
     instagram: 'https://www.instagram.com/yeron_barber/',
-    direccion: 'Av. Presidente Enríquez, al lado de Plaza Jorge', // ciudad y referencia: por confirmar
+    direccion: 'Av. Presidente Enríquez, al lado de Plaza Jorge, San Pedro de Macorís', // ortografía de la avenida y pin de Google Maps: por confirmar
     domicilioDesde: 'RD$1,000',
     utcOffset: -4,                          // República Dominicana: UTC−4 todo el año
   };
