@@ -899,7 +899,7 @@ html:not(.js) .filtros { display: none; }
 .dias { display: flex; gap: 8px; padding: 4px 2px 12px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
 .dia { position: relative; flex: 0 0 auto; scroll-snap-align: start; }
 .dia label {
-  display: grid; justify-items: center; gap: 1px; width: 76px; padding: 10px 6px;
+  display: grid; justify-items: center; align-content: start; gap: 1px; width: 94px; height: 100%; padding: 10px 4px;
   border: 1.5px solid var(--marmol-2); border-radius: var(--r-2); text-align: center;
   transition: border-color .2s, background-color .2s, color .2s;
 }
@@ -907,7 +907,7 @@ html:not(.js) .filtros { display: none; }
 .dia__semana { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pizarra); }
 .dia__num { font-family: var(--f-display); font-weight: 900; font-stretch: 80%; font-size: 1.75rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .dia__mes { font-size: .72rem; color: var(--pizarra); }
-.dia__tag { margin-top: 5px; padding: 2px 7px; border-radius: var(--r-pill); background: var(--marmol); color: var(--pizarra); font-size: .6rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.dia__tag { margin-top: 5px; max-width: 100%; padding: 3px 5px; border-radius: 10px; background: var(--marmol); color: var(--pizarra); font-size: .58rem; font-weight: 700; letter-spacing: .02em; line-height: 1.15; text-transform: uppercase; text-align: center; }
 .dia--miercoles .dia__tag { background: rgba(212, 42, 49, .1); color: var(--rojo-hover); }
 .dia input:checked + label { background: var(--noche); border-color: var(--noche); color: #fff; }
 .dia input:checked + label .dia__semana, .dia input:checked + label .dia__mes { color: var(--niebla); }
