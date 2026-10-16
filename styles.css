@@ -1227,3 +1227,13 @@ html.js img.nitida:not(.is-cargada) { filter: blur(14px); transform: scale(1.03)
 .avisos__lista { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 18px; }
 .aviso--cierre { background: rgba(212, 42, 49, .07); border: 1px solid rgba(212, 42, 49, .25); color: #7B1418; }
 .dia--cierre .dia__tag { background: rgba(212, 42, 49, .1); color: var(--rojo-hover); }
+
+/* Lista de otros servicios y precios (menú impreso de la barbería) */
+.precios-extra { max-width: 640px; margin: 36px auto 0; padding: 24px 26px; background: var(--marmol, #F3F2EF); border: 1px solid rgba(10,18,32,.12); }
+.precios-extra__titulo { margin: 0 0 14px; font-size: 1rem; letter-spacing: .08em; text-transform: uppercase; }
+.precios-extra__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.precios-extra__lista li { display: flex; align-items: baseline; gap: 10px; }
+.precios-extra__linea { flex: 1; border-bottom: 2px dotted rgba(10,18,32,.35); transform: translateY(-3px); min-width: 16px; }
+.precios-extra__nombre { font-weight: 700; }
+.precios-extra__precio { font-weight: 800; color: #D42A31; white-space: nowrap; }
+.precios-extra__nota { margin: 16px 0 0; font-size: .86rem; opacity: .8; }

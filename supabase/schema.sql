@@ -34,13 +34,13 @@ create table if not exists public.horario (
 );
 
 insert into public.horario (dow, modo, abre, cierra) values
-  (0, 'por_confirmar', null, null),
+  (0, 'barberia', 8, 21),
   (1, 'barberia', 8, 21),
   (2, 'barberia', 8, 21),
   (3, 'domicilio', 8, 21),
   (4, 'barberia', 8, 21),
   (5, 'barberia', 8, 21),
-  (6, 'por_confirmar', null, null)
+  (6, 'barberia', 8, 21)
 on conflict (dow) do nothing;
 
 -- Días cerrados (feriados, descansos, viajes…). Un día cerrado no admite citas.
@@ -231,3 +231,7 @@ grant execute on function public.es_admin() to authenticated;
 --    insert into public.admins (user_id)
 --    select id from auth.users where email = 'CORREO_DE_YERON@ejemplo.com'
 --    on conflict do nothing;
+
+-- Si ya habías ejecutado este archivo antes (sábado y domingo en «por_confirmar»), pon el fin de
+-- semana igual que los demás días con:
+--   update public.horario set modo = 'barberia', abre = 8, cierra = 21 where dow in (0, 6);
