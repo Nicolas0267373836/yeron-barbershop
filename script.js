@@ -22,19 +22,27 @@
 
   // 0 = domingo … 6 = sábado · null = por confirmar · horas en formato 24 h
   const HORARIO = {
-    0: null,
+    0: { abre: 8, cierra: 21, modo: 'barberia' },   // domingo: igual que los demás días (confirmado)
     1: { abre: 8, cierra: 21, modo: 'barberia' },
     2: { abre: 8, cierra: 21, modo: 'barberia' },
     3: { abre: 8, cierra: 21, modo: 'domicilio' },  // miércoles: 100 % a domicilio
     4: { abre: 8, cierra: 21, modo: 'barberia' },
     5: { abre: 8, cierra: 21, modo: 'barberia' },
-    6: null,
+    6: { abre: 8, cierra: 21, modo: 'barberia' },   // sábado: igual que los demás días (confirmado)
   };
 
-  // precio: null = «Precio: consultar» (pendiente de confirmar con Yeron)
+  // Precios de la lista impresa de la barbería (foto del menú). precio: null = «Precio: consultar»
+  // Otros servicios de la lista que no son reservables en línea (se muestran como lista de precios)
+  const PRECIOS_EXTRA = [
+    { nombre: 'Lavado de pelo', precio: 'RD$400' },
+    { nombre: 'Corte de niños', precio: 'RD$300' },
+    { nombre: 'Chicas cejas', precio: 'RD$100' },
+    { nombre: 'Tintado de cejas', precio: 'RD$400' },
+    { nombre: 'Servicios de faciales', precio: 'RD$600' },
+  ];
   const SERVICIOS = [
     {
-      id: 'fade', nombre: 'Corte con fade', icono: 'i-maquina', precio: null,
+      id: 'fade', nombre: 'Corte de adulto', icono: 'i-maquina', precio: 'RD$500',
       resumen: 'Skin, low, mid o high: el degradado que va con tu estilo.',
       texto: 'Degradado a la altura que elijas, parejo de lado a lado y con el contorno definido al final.',
       incluye: ['Te pregunta cómo lo quieres y revisa tu tipo de pelo', 'Degradado a la altura que elijas', 'Perfilado de frente, patillas y nuca'],
@@ -55,14 +63,14 @@
       foto: 'images/cortes/high-fade-y-barba.webp', alt: 'Ejemplo de barba tupida, degradada y perfilada',
     },
     {
-      id: 'corte-barba', nombre: 'Corte + barba', icono: 'i-tijera', precio: null,
+      id: 'corte-barba', nombre: 'Corte + barba / afeitada', icono: 'i-tijera', precio: 'RD$600',
       resumen: 'El servicio completo: corte, perfilado y barba.',
       texto: 'Corte con fade, perfilado y barba en una sola visita, para salir listo de la silla.',
       incluye: ['Corte con el degradado que elijas', 'Barba recortada y perfilada', 'Perfilado final de todo el contorno'],
       foto: 'images/cortes/twists-y-barba.webp', alt: 'Ejemplo de corte con twists, laterales degradados y barba completa',
     },
     {
-      id: 'rayas', nombre: 'Rayas y detalles', icono: 'i-peine', precio: null,
+      id: 'rayas', nombre: 'Rayas y detalles', icono: 'i-peine', precio: 'Costo adicional',
       resumen: 'Raya marcada y detalles a tu gusto.',
       texto: 'Una raya marcada al lado o un detalle sobre el degradado para darle personalidad al corte.',
       incluye: ['Raya del lado que prefieras', 'Detalles sobre el degradado', 'Se combina con cualquier corte'],
@@ -694,6 +702,11 @@
           <span class="servicio__ver">Ver detalle ${icono('i-flecha', 'ico')}</span>
         </span>
       </button>`).join('');
+
+    const extra = $('[data-precios-extra]');
+    if (extra) {
+      extra.innerHTML = `<h3 class="precios-extra__titulo">Otros servicios</h3><ul class="precios-extra__lista">${PRECIOS_EXTRA.map((p) => `<li><span class="precios-extra__nombre">${esc(p.nombre)}</span><span class="precios-extra__linea" aria-hidden="true"></span><span class="precios-extra__precio">${esc(p.precio)}</span></li>`).join('')}</ul><p class="precios-extra__nota">Corte de niños: si el niño no deja recortarse, se cobran RD$200 por el atraso del servicio.</p>`;
+    }
 
     const caja = $('.modal__caja', modal);
     let origen = null;

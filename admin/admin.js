@@ -22,7 +22,7 @@
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
   const NBSP = ' ';
-  const SERVICIOS = { fade: 'Corte con fade', perfilado: 'Perfilado (line-up)', barba: 'Barba', 'corte-barba': 'Corte + barba', rayas: 'Rayas y detalles', domicilio: 'A domicilio' };
+  const SERVICIOS = { lavado: 'Lavado de pelo', 'corte-adulto': 'Corte de adulto', 'corte-barba': 'Corte con barba / afeitada', cejas: 'Chicas cejas', 'corte-ninos': 'Corte de niños', 'tintado-cejas': 'Tintado de cejas', rayas: 'Rayas', faciales: 'Servicios de faciales', domicilio: 'A domicilio' };
   const ESTADOS = { pendiente: 'Por confirmar', confirmada: 'Confirmada', cancelada: 'Cancelada', completada: 'Completada' };
   const MODOS = { barberia: 'En la barbería', domicilio: 'A domicilio', cerrado: 'Cerrado', por_confirmar: 'Por confirmar' };
   const ACTIVAS = ['pendiente', 'confirmada'];

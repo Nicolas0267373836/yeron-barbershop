@@ -82,9 +82,8 @@ Las fotos vienen de Instagram (máx. 1024 px). Se optimizaron a WebP sin cambiar
 
 - Si la avenida es «Enríquez» o «Henríquez» (ciudad y referencia ya confirmadas: San Pedro de Macorís, al lado de Plaza Jorge).
 - Pin o enlace de Google Maps (hoy el botón pide la ubicación por WhatsApp).
-- Horario de sábado y domingo.
 - Hora del domicilio de los miércoles (la reserva ofrece de 8:00 a. m. a 8:00 p. m.).
-- Lista de servicios y precios (solo está confirmado el domicilio desde RD$1,000), y la descripción de cada uno.
+- Precios de **perfilado** y **barba sola** (no aparecen en la lista impresa) y el monto exacto de **servicios de faciales** (en la foto del menú está tapado por un reflejo; se leyó RD$600). Lista de precios tomada del menú impreso de la barbería.
 - Cómo se cotiza la distancia del domicilio.
 - Duración aproximada de cada servicio.
 - **Figuras reconocidas**: fotos, nombres y permiso de uso (2 espacios pendientes en el filtro «Reconocidos»).
@@ -174,7 +173,7 @@ Hola, Yeron. Quiero reservar un turno desde tu página web.
 • Mi WhatsApp: …
 ```
 
-Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agrega que el precio arranca en RD$1,000 según la distancia. Sábado y domingo aparecen deshabilitados («Por confirmar») y las horas que ya pasaron hoy no se pueden elegir.
+Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agrega que el precio arranca en RD$1,000 según la distancia. Sábado y domingo tienen el mismo horario que los demás días (8:00 a. m.–9:00 p. m.) y las horas que ya pasaron hoy no se pueden elegir.
 
 ## Panel administrativo
 

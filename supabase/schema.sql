@@ -64,7 +64,7 @@ insert into public.config (id) values (1) on conflict (id) do nothing;
 create table if not exists public.citas (
   id        uuid primary key default gen_random_uuid(),
   creado    timestamptz not null default now(),
-  servicio  text not null check (servicio in ('fade', 'perfilado', 'barba', 'corte-barba', 'rayas', 'domicilio')),
+  servicio  text not null check (servicio in ('lavado', 'corte-adulto', 'corte-barba', 'cejas', 'corte-ninos', 'tintado-cejas', 'rayas', 'faciales', 'domicilio')),
   fecha     date not null,
   hora      smallint not null check (hora between 0 and 23),
   lugar     text not null check (lugar in ('barberia', 'domicilio')),
@@ -165,7 +165,7 @@ declare
   v_sector text := btrim(coalesce(p_sector, ''));
   v_id     uuid;
 begin
-  if p_servicio is null or p_servicio not in ('fade', 'perfilado', 'barba', 'corte-barba', 'rayas', 'domicilio') then
+  if p_servicio is null or p_servicio not in ('lavado', 'corte-adulto', 'corte-barba', 'cejas', 'corte-ninos', 'tintado-cejas', 'rayas', 'faciales', 'domicilio') then
     raise exception 'servicio_invalido';
   end if;
   if char_length(v_nombre) < 2 or char_length(v_nombre) > 80 then raise exception 'nombre_invalido'; end if;
@@ -235,3 +235,8 @@ grant execute on function public.es_admin() to authenticated;
 -- Si ya habías ejecutado este archivo antes (sábado y domingo en «por_confirmar»), pon el fin de
 -- semana igual que los demás días con:
 --   update public.horario set modo = 'barberia', abre = 8, cierra = 21 where dow in (0, 6);
+
+-- Si ya habías ejecutado una versión anterior de este archivo (con servicios 'fade', 'perfilado', 'barba'),
+-- actualiza la restricción y la función: vuelve a pegar este archivo completo y, si hay citas viejas,
+-- ejecuta antes:  update public.citas set servicio = 'corte-adulto' where servicio = 'fade';
+--                 alter table public.citas drop constraint if exists citas_servicio_check;
