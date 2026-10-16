@@ -31,57 +31,66 @@
     6: { abre: 8, cierra: 21, modo: 'barberia' },   // sábado: igual que los demás días (confirmado)
   };
 
-  // Precios de la lista impresa de la barbería (foto del menú). precio: null = «Precio: consultar»
-  // Otros servicios de la lista que no son reservables en línea (se muestran como lista de precios)
-  const PRECIOS_EXTRA = [
-    { nombre: 'Lavado de pelo', precio: 'RD$400' },
-    { nombre: 'Corte de niños', precio: 'RD$300' },
-    { nombre: 'Chicas cejas', precio: 'RD$100' },
-    { nombre: 'Tintado de cejas', precio: 'RD$400' },
-    { nombre: 'Servicios de faciales', precio: 'RD$600' },
-  ];
+  // Servicios y precios: lista impresa de la barbería (foto del menú, oct-2026).
+  // precio: null = «Precio: consultar». Sin foto propia, la ventana de detalle se muestra sin imagen.
   const SERVICIOS = [
     {
-      id: 'fade', nombre: 'Corte de adulto', icono: 'i-maquina', precio: 'RD$500',
+      id: 'lavado', nombre: 'Lavado de pelo', icono: 'i-bola', precio: 'RD$400',
+      resumen: 'Lavado de pelo en la barbería.',
+      texto: 'Lavado de pelo para salir fresco de la silla, solo o junto con tu corte.',
+      incluye: ['Lavado de pelo', 'Se puede sumar a cualquier corte'],
+    },
+    {
+      id: 'corte-adulto', nombre: 'Corte de adulto', icono: 'i-maquina', precio: 'RD$500',
       resumen: 'Skin, low, mid o high: el degradado que va con tu estilo.',
       texto: 'Degradado a la altura que elijas, parejo de lado a lado y con el contorno definido al final.',
       incluye: ['Te pregunta cómo lo quieres y revisa tu tipo de pelo', 'Degradado a la altura que elijas', 'Perfilado de frente, patillas y nuca'],
       foto: 'images/cortes/fade-con-raya.webp', alt: 'Ejemplo de fade con raya marcada y barba corta',
     },
     {
-      id: 'perfilado', nombre: 'Perfilado (line-up)', icono: 'i-navaja', precio: null,
-      resumen: 'Contorno definido en frente, patillas y nuca.',
-      texto: 'Para mantener el corte limpio entre visitas: líneas rectas y contornos marcados.',
-      incluye: ['Contorno de la frente', 'Patillas y nuca definidas', 'Retoque de las líneas del corte'],
-      foto: 'images/cortes/taper-con-rizos.webp', alt: 'Ejemplo de perfilado con el contorno de la frente marcado',
-    },
-    {
-      id: 'barba', nombre: 'Barba', icono: 'i-barba', precio: null,
-      resumen: 'Perfilado y degradado de barba con acabado limpio.',
-      texto: 'La barba se recorta, se degrada hacia las patillas y se perfila para que enmarque la cara.',
-      incluye: ['Recorte al largo que prefieras', 'Degradado de la barba hacia las patillas', 'Perfilado de mejillas y cuello'],
-      foto: 'images/cortes/high-fade-y-barba.webp', alt: 'Ejemplo de barba tupida, degradada y perfilada',
-    },
-    {
-      id: 'corte-barba', nombre: 'Corte + barba / afeitada', icono: 'i-tijera', precio: 'RD$600',
-      resumen: 'El servicio completo: corte, perfilado y barba.',
-      texto: 'Corte con fade, perfilado y barba en una sola visita, para salir listo de la silla.',
-      incluye: ['Corte con el degradado que elijas', 'Barba recortada y perfilada', 'Perfilado final de todo el contorno'],
+      id: 'corte-barba', nombre: 'Corte con barba / afeitada', icono: 'i-tijera', precio: 'RD$600',
+      resumen: 'El servicio completo: corte y barba o afeitada.',
+      texto: 'Corte con el degradado que elijas y barba recortada y perfilada, o afeitada, en una sola visita.',
+      incluye: ['Corte con el degradado que elijas', 'Barba recortada y perfilada, o afeitada', 'Perfilado final de todo el contorno'],
       foto: 'images/cortes/twists-y-barba.webp', alt: 'Ejemplo de corte con twists, laterales degradados y barba completa',
     },
     {
-      id: 'rayas', nombre: 'Rayas y detalles', icono: 'i-peine', precio: 'Costo adicional',
+      id: 'cejas', nombre: 'Chicas cejas', icono: 'i-navaja', precio: 'RD$100',
+      resumen: 'Arreglo de cejas.',
+      texto: 'Arreglo de cejas para completar tu corte.',
+      incluye: ['Arreglo de cejas', 'Se puede sumar a cualquier corte'],
+    },
+    {
+      id: 'corte-ninos', nombre: 'Corte de niños', icono: 'i-personas', precio: 'RD$300',
+      resumen: 'Corte para los más pequeños.',
+      texto: 'Corte de niños. Si el niño no deja recortarse, se cobran RD$200 por el atraso del servicio.',
+      incluye: ['Corte para niños', 'Política: RD$200 de atraso si no deja recortarlo'],
+    },
+    {
+      id: 'tintado-cejas', nombre: 'Tintado de cejas', icono: 'i-navaja', precio: 'RD$400',
+      resumen: 'Color para las cejas.',
+      texto: 'Tintado de cejas para darles más definición.',
+      incluye: ['Tintado de cejas', 'Se puede sumar a cualquier corte'],
+    },
+    {
+      id: 'rayas', nombre: 'Rayas', icono: 'i-peine', precio: 'Costo adicional',
       resumen: 'Raya marcada y detalles a tu gusto.',
-      texto: 'Una raya marcada al lado o un detalle sobre el degradado para darle personalidad al corte.',
+      texto: 'Una raya marcada al lado o un detalle sobre el degradado para darle personalidad al corte. Tiene un costo adicional al del corte.',
       incluye: ['Raya del lado que prefieras', 'Detalles sobre el degradado', 'Se combina con cualquier corte'],
       foto: 'images/cortes/fade-con-raya.webp', alt: 'Ejemplo de raya marcada al lado sobre un fade bajo',
+    },
+    {
+      id: 'faciales', nombre: 'Servicios de faciales', icono: 'i-estrella', precio: 'RD$600',
+      resumen: 'Cuidado facial en la barbería.',
+      texto: 'Servicios de faciales para cuidar la piel del rostro.',
+      incluye: ['Servicio de faciales', 'Se puede sumar a cualquier corte'],
     },
     {
       id: 'domicilio', nombre: 'A domicilio', icono: 'i-casa', destacado: true,
       get precio() { return `Desde ${NEGOCIO.domicilioDesde}`; },   // la tarifa se cambia desde el panel
       resumen: 'Solo los miércoles. Yeron va a tu casa.',
-      get texto() { return `Los miércoles Yeron trabaja 100 % a domicilio. El servicio arranca en ${NEGOCIO.domicilioDesde} y el precio final se cotiza según la distancia.`; },
-      get incluye() { return ['El servicio que elijas, en tu casa', `Precio desde ${NEGOCIO.domicilioDesde}`, 'La distancia se cotiza por WhatsApp']; },
+      get texto() { return `Los miércoles Yeron trabaja 100 % a domicilio. El traslado es ${NEGOCIO.domicilioDesde} y se agrega un costo adicional según la distancia.`; },
+      get incluye() { return ['El servicio que elijas, en tu casa', `Traslado desde ${NEGOCIO.domicilioDesde}`, 'Costo adicional según la distancia']; },
     },
   ];
 
@@ -702,11 +711,6 @@
           <span class="servicio__ver">Ver detalle ${icono('i-flecha', 'ico')}</span>
         </span>
       </button>`).join('');
-
-    const extra = $('[data-precios-extra]');
-    if (extra) {
-      extra.innerHTML = `<h3 class="precios-extra__titulo">Otros servicios</h3><ul class="precios-extra__lista">${PRECIOS_EXTRA.map((p) => `<li><span class="precios-extra__nombre">${esc(p.nombre)}</span><span class="precios-extra__linea" aria-hidden="true"></span><span class="precios-extra__precio">${esc(p.precio)}</span></li>`).join('')}</ul><p class="precios-extra__nota">Corte de niños: si el niño no deja recortarse, se cobran RD$200 por el atraso del servicio.</p>`;
-    }
 
     const caja = $('.modal__caja', modal);
     let origen = null;

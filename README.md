@@ -47,7 +47,7 @@ Botón «Revisión» en la esquina inferior izquierda:
 2. **Por confirmar**: lista para el cliente y todas las marcas «por confirmar» de la página (botón «Ir» para cada una), con opción de resaltarlas.
 3. **Sistema**: colores con contraste, tipografía, botones en sus 7 estados, espaciado, curvas de movimiento y puntos de corte.
 
-Enlaces directos a cada servicio: `index.html#servicio-fade`, `#servicio-perfilado`, `#servicio-barba`, `#servicio-corte-barba`, `#servicio-rayas`, `#servicio-domicilio`.
+Enlaces directos a cada servicio: `index.html#servicio-lavado`, `#servicio-corte-adulto`, `#servicio-corte-barba`, `#servicio-cejas`, `#servicio-corte-ninos`, `#servicio-tintado-cejas`, `#servicio-rayas`, `#servicio-faciales`, `#servicio-domicilio`.
 
 ## Datos usados y su fuente
 
@@ -83,7 +83,7 @@ Las fotos vienen de Instagram (máx. 1024 px). Se optimizaron a WebP sin cambiar
 - Si la avenida es «Enríquez» o «Henríquez» (ciudad y referencia ya confirmadas: San Pedro de Macorís, al lado de Plaza Jorge).
 - Pin o enlace de Google Maps (hoy el botón pide la ubicación por WhatsApp).
 - Hora del domicilio de los miércoles (la reserva ofrece de 8:00 a. m. a 8:00 p. m.).
-- Precios de **perfilado** y **barba sola** (no aparecen en la lista impresa) y el monto exacto de **servicios de faciales** (en la foto del menú está tapado por un reflejo; se leyó RD$600). Lista de precios tomada del menú impreso de la barbería.
+- Monto exacto de **servicios de faciales**: en la foto del menú un reflejo tapa el número (se leyó RD$600). Servicios y precios tomados del menú impreso; no hay fotos propias de lavado, cejas, niños ni faciales.
 - Cómo se cotiza la distancia del domicilio.
 - Duración aproximada de cada servicio.
 - **Figuras reconocidas**: fotos, nombres y permiso de uso (2 espacios pendientes en el filtro «Reconocidos»).
