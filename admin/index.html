@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es-DO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1220">
+<title>Panel · Yeron Barbershop</title>
+<link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Schibsted+Grotesk:wght@400..800&display=swap">
+<link rel="stylesheet" href="admin.css">
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<div class="poste" aria-hidden="true"></div>
+
+<header class="cab">
+  <div class="cab__fila">
+    <a class="cab__marca" href="./" aria-label="Panel de Yeron Barbershop">
+      <img src="../images/logo/yeron-sello-claro.png" alt="" width="40" height="40">
+      <span><strong>Yeron</strong> Panel</span>
+    </a>
+    <div class="cab__acciones">
+      <a class="enlace-claro" href="../" target="_blank" rel="noopener">Ver la web</a>
+      <button class="btn btn--claro btn--chico" type="button" data-salir hidden>Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor" id="contenido">
+
+  <!-- Sin conexión configurada -->
+  <section class="tarjeta" data-vista="sin-config" hidden>
+    <h1 class="titulo">Falta conectar la base de datos</h1>
+    <p>Este panel necesita Supabase. Completa <code>supabaseUrl</code> y <code>supabaseAnonKey</code> en el archivo <code>config.js</code> (guía en el README, sección «Panel administrativo»).</p>
+  </section>
+
+  <!-- Inicio de sesión -->
+  <section class="tarjeta tarjeta--login" data-vista="login" hidden>
+    <h1 class="titulo">Entrar al panel</h1>
+    <p class="suave">Solo para Yeron. Las citas guardan nombre y WhatsApp de tus clientes.</p>
+    <form data-form-login novalidate>
+      <div class="campo">
+        <label for="login-correo">Correo</label>
+        <input id="login-correo" name="correo" type="email" autocomplete="username" inputmode="email" required>
+      </div>
+      <div class="campo">
+        <label for="login-clave">Contraseña</label>
+        <input id="login-clave" name="clave" type="password" autocomplete="current-password" required>
+      </div>
+      <p class="error" data-login-error role="alert"></p>
+      <button class="btn btn--principal btn--ancho" type="submit" data-login-btn><span class="btn__texto">Entrar</span></button>
+    </form>
+  </section>
+
+  <!-- Sin permiso -->
+  <section class="tarjeta" data-vista="sin-acceso" hidden>
+    <h1 class="titulo">Esta cuenta no tiene acceso</h1>
+    <p>Iniciaste sesión, pero tu usuario no está registrado como administrador. Pídele a WebDom que lo agregue y vuelve a entrar.</p>
+    <button class="btn btn--linea" type="button" data-salir-2>Salir</button>
+  </section>
+
+  <!-- Panel -->
+  <section data-vista="panel" hidden>
+    <nav class="pestanas" role="tablist" aria-label="Secciones del panel">
+      <button class="pestana" role="tab" id="tab-citas" aria-controls="panel-citas" aria-selected="true" data-tab="citas">Citas <span class="insignia" data-contador hidden>0</span></button>
+      <button class="pestana" role="tab" id="tab-cierres" aria-controls="panel-cierres" aria-selected="false" tabindex="-1" data-tab="cierres">Días cerrados</button>
+      <button class="pestana" role="tab" id="tab-horario" aria-controls="panel-horario" aria-selected="false" tabindex="-1" data-tab="horario">Horario</button>
+    </nav>
+
+    <!-- CITAS -->
+    <div role="tabpanel" id="panel-citas" aria-labelledby="tab-citas" data-panel="citas">
+      <div class="barra">
+        <div class="segmentos" role="group" aria-label="Filtro de citas">
+          <button type="button" class="segmento" data-filtro="pendientes" aria-pressed="false">Por confirmar <span class="insignia insignia--suave" data-n-pendientes>0</span></button>
+          <button type="button" class="segmento" data-filtro="agenda" aria-pressed="true">Agenda</button>
+          <button type="button" class="segmento" data-filtro="historial" aria-pressed="false">Historial</button>
+        </div>
+        <button class="btn btn--linea btn--chico" type="button" data-actualizar>Actualizar</button>
+      </div>
+      <p class="suave" data-ultima></p>
+      <div data-lista-citas aria-live="polite"></div>
+    </div>
+
+    <!-- DÍAS CERRADOS -->
+    <div role="tabpanel" id="panel-cierres" aria-labelledby="tab-cierres" data-panel="cierres" hidden>
+      <div class="tarjeta">
+        <h2 class="subtitulo">Cerrar un día</h2>
+        <p class="suave">Feriados, descansos, viajes… La web lo avisa arriba y no deja reservar ese día.</p>
+        <form data-form-cierre novalidate>
+          <div class="rejilla">
+            <div class="campo">
+              <label for="cierre-fecha">Día</label>
+              <input id="cierre-fecha" name="fecha" type="date" required>
+              <div class="atajos">
+                <button type="button" class="chip" data-atajo="0">Hoy</button>
+                <button type="button" class="chip" data-atajo="1">Mañana</button>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="cierre-tipo">Tipo</label>
+              <select id="cierre-tipo" name="tipo">
+                <option value="feriado">Feriado</option>
+                <option value="cerrado">Cerrado (descanso, viaje…)</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="cierre-motivo">Motivo que verá el cliente <span class="suave">(opcional)</span></label>
+            <input id="cierre-motivo" name="motivo" type="text" maxlength="120" placeholder="Ej.: Día de la Altagracia">
+          </div>
+          <p class="error" data-cierre-error role="alert"></p>
+          <div class="aviso aviso--ambar" data-cierre-citas hidden></div>
+          <button class="btn btn--principal" type="submit" data-cierre-btn><span class="btn__texto">Cerrar este día</span></button>
+        </form>
+      </div>
+      <h2 class="subtitulo subtitulo--lista">Próximos días cerrados</h2>
+      <div data-lista-cierres aria-live="polite"></div>
+    </div>
+
+    <!-- HORARIO -->
+    <div role="tabpanel" id="panel-horario" aria-labelledby="tab-horario" data-panel="horario" hidden>
+      <div class="tarjeta">
+        <h2 class="subtitulo">Horario de la semana</h2>
+        <p class="suave">El miércoles puede ser «A domicilio». Si eliges «Por confirmar» o «Cerrado», ese día no se puede reservar.</p>
+        <form data-form-horario novalidate>
+          <div data-filas-horario></div>
+          <p class="error" data-horario-error role="alert"></p>
+          <button class="btn btn--principal" type="submit" data-horario-btn><span class="btn__texto">Guardar horario</span></button>
+        </form>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="subtitulo">Tarifa del domicilio</h2>
+        <form data-form-tarifa novalidate>
+          <div class="campo campo--corto">
+            <label for="tarifa-desde">Desde (RD$)</label>
+            <input id="tarifa-desde" name="desde" type="number" min="0" step="50" inputmode="numeric" required>
+          </div>
+          <p class="error" data-tarifa-error role="alert"></p>
+          <button class="btn btn--principal" type="submit" data-tarifa-btn><span class="btn__texto">Guardar tarifa</span></button>
+        </form>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="subtitulo">Aviso general en la web</h2>
+        <p class="suave">Un mensaje en la franja roja de arriba (ej.: «Esta semana cerramos a las 6:00 p. m.»).</p>
+        <form data-form-aviso novalidate>
+          <div class="campo">
+            <label for="aviso-texto">Mensaje</label>
+            <textarea id="aviso-texto" name="texto" rows="2" maxlength="200"></textarea>
+          </div>
+          <label class="interruptor"><input type="checkbox" name="activo"><span class="interruptor__pista" aria-hidden="true"></span><span>Mostrar el aviso en la web</span></label>
+          <p class="error" data-aviso-error role="alert"></p>
+          <button class="btn btn--principal" type="submit" data-aviso-btn><span class="btn__texto">Guardar aviso</span></button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Reprogramar -->
+<dialog class="dialogo" data-dialogo-reprog aria-labelledby="reprog-titulo">
+  <form method="dialog" data-form-reprog novalidate>
+    <h2 class="subtitulo" id="reprog-titulo">Reprogramar cita</h2>
+    <p class="suave" data-reprog-quien></p>
+    <div class="campo">
+      <label for="reprog-fecha">Nuevo día</label>
+      <input id="reprog-fecha" name="fecha" type="date" required>
+    </div>
+    <div class="campo">
+      <label for="reprog-hora">Nueva hora</label>
+      <select id="reprog-hora" name="hora" required></select>
+    </div>
+    <p class="error" data-reprog-error role="alert"></p>
+    <div class="dialogo__acciones">
+      <button class="btn btn--linea" type="button" data-reprog-cancelar>Volver</button>
+      <button class="btn btn--principal" type="submit" data-reprog-guardar><span class="btn__texto">Guardar cambio</span></button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" data-toast role="status" aria-live="polite"></div>
+
+<script src="../config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

@@ -1218,3 +1218,12 @@ html.js img.nitida:not(.is-cargada) { filter: blur(14px); transform: scale(1.03)
   .cinta__pista { width: auto; flex-wrap: wrap; justify-content: center; }
   .domicilio__lienzo { clip-path: none; }
 }
+
+/* Avisos en vivo (días cerrados, feriados, aviso general) */
+.avisos { background: var(--rojo); color: #fff; font-size: .875rem; font-weight: 600; }
+.avisos[hidden] { display: none; }
+.avisos__fila { display: flex; align-items: flex-start; gap: 10px; padding-block: 9px; }
+.avisos__fila .ico { margin-top: 2px; flex: none; }
+.avisos__lista { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 18px; }
+.aviso--cierre { background: rgba(212, 42, 49, .07); border: 1px solid rgba(212, 42, 49, .25); color: #7B1418; }
+.dia--cierre .dia__tag { background: rgba(212, 42, 49, .1); color: var(--rojo-hover); }

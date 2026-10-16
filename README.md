@@ -15,6 +15,9 @@ Sitio de una página para **Yeron Barbershop** (Instagram [@yeron_barber](https:
 | `styles.css` | Tokens, componentes, secciones, movimiento y responsive (1440 / 768 / 390) |
 | `script.js` | **Datos editables** (negocio, horario, 6 servicios, galería) e interacciones |
 | `vista-responsive.html` | Escritorio, tablet y móvil uno junto a otro |
+| `config.js` | Conexión pública a Supabase (URL y clave anon; vacío = web 100 % estática) |
+| `admin/` | Panel administrativo de Yeron (`index.html`, `admin.css`, `admin.js`) |
+| `supabase/schema.sql` | Tablas, seguridad (RLS) y funciones del panel |
 | `images/` | Fotos optimizadas (WebP), logo en versión clara y oscura, favicon e imagen para compartir |
 
 No necesita build. Para verlo en local: `npx serve .` y abrir `http://localhost:3000` (o `python -m http.server`).
@@ -172,6 +175,27 @@ Hola, Yeron. Quiero reservar un turno desde tu página web.
 ```
 
 Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agrega que el precio arranca en RD$1,000 según la distancia. Sábado y domingo aparecen deshabilitados («Por confirmar») y las horas que ya pasaron hoy no se pueden elegir.
+
+## Panel administrativo
+
+Yeron gestiona desde `/admin` (por ejemplo `https://TU-DOMINIO/admin/`) y la web pública refleja los cambios sin tocar código.
+
+**Qué puede hacer el panel**
+- **Citas**: ver las reservas hechas en la web, confirmar, cancelar, reprogramar, marcar como completadas y escribir al cliente por WhatsApp con el mensaje ya preparado.
+- **Días cerrados**: marcar un feriado o descanso. La web muestra un aviso rojo arriba, bloquea ese día en la reserva (etiqueta «Feriado» o «Cerrado») y el servidor rechaza reservas ese día.
+- **Horario**: horas de cada día, «Por confirmar» o «Cerrado», y el miércoles «A domicilio» (el domicilio solo existe los miércoles). Cambiar la tarifa «Desde RD$» del domicilio y publicar un aviso general.
+
+**Cómo funciona**: la web lee horario, días cerrados y avisos de Supabase cada 5 minutos y al volver a la pestaña. Al reservar, la cita se guarda con `crear_cita` y luego se abre WhatsApp. Si Supabase no responde, la web sigue funcionando como antes (solo WhatsApp). Si `config.js` está vacío, la web es 100 % estática.
+
+**Puesta en marcha (una vez)**
+1. Crear un proyecto nuevo en Supabase solo para Yeron (no reutilizar webdom-citas ni otro cliente).
+2. SQL Editor → pegar `supabase/schema.sql` → Run.
+3. Authentication → Users → Add user con el correo y una contraseña de Yeron. En Authentication → Providers → Email, desactivar «Allow new users to sign up».
+4. Registrarlo como administrador (ver el final de `schema.sql`): `insert into public.admins (user_id) select id from auth.users where email = 'CORREO_DE_YERON';`
+5. En `config.js` poner `supabaseUrl` (Project Settings → API) y `supabaseAnonKey` (la clave publishable/anon). **Nunca** poner la clave `service_role` o secret: `config.js` es público.
+6. Publicar la carpeta completa (incluye `admin/` y `config.js`) y probar: iniciar sesión, cerrar un día de prueba y verlo en la web, reabrirlo.
+
+**Seguridad**: las citas guardan nombre y WhatsApp, por eso solo un usuario de la tabla `admins` puede leerlas (RLS). El público solo puede crear una cita (validada en el servidor, máx. 3 activas por número, sin doble reserva) y ver qué horas están ocupadas, sin datos personales. El panel lleva `noindex`. Zona horaria: America/Santo_Domingo.
 
 ## Antes de publicar
 

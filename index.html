@@ -82,9 +82,17 @@
       <span class="estado__punto" aria-hidden="true"></span>
       <span data-estado-texto>Lun, mar, jue y vie · 8:00&nbsp;a.&nbsp;m.–9:00&nbsp;p.&nbsp;m.</span>
     </p>
-    <p class="topbar__dato topbar__dato--horario"><svg class="ico" aria-hidden="true"><use href="#i-reloj"/></svg> Lun–vie · 8:00&nbsp;a.&nbsp;m.–9:00&nbsp;p.&nbsp;m.</p>
+    <p class="topbar__dato topbar__dato--horario"><svg class="ico" aria-hidden="true"><use href="#i-reloj"/></svg> <span data-horario-resumen>Lun–vie · 8:00&nbsp;a.&nbsp;m.–9:00&nbsp;p.&nbsp;m.</span></p>
     <a class="topbar__dato topbar__enlace" href="#domicilio"><svg class="ico" aria-hidden="true"><use href="#i-casa"/></svg> Miércoles: 100&nbsp;% a domicilio</a>
     <a class="topbar__dato topbar__enlace topbar__wa" href="https://wa.me/18293374594" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg> +1 829-337-4594</a>
+  </div>
+</div>
+
+<!-- Avisos en vivo: días cerrados, feriados y aviso general (los maneja Yeron desde su panel) -->
+<div class="avisos" data-avisos role="status" aria-live="polite" hidden>
+  <div class="contenedor avisos__fila">
+    <svg class="ico" aria-hidden="true"><use href="#i-calendario"/></svg>
+    <ul class="avisos__lista" data-avisos-lista></ul>
   </div>
 </div>
 
@@ -151,7 +159,7 @@
       </div>
       <ul class="hero__datos intro" style="--d:1.15s">
         <li><svg class="ico" aria-hidden="true"><use href="#i-reloj"/></svg><span><strong>8:00&nbsp;a.&nbsp;m.–9:00&nbsp;p.&nbsp;m.</strong>Lun, mar, jue y vie</span></li>
-        <li><svg class="ico" aria-hidden="true"><use href="#i-casa"/></svg><span><strong>Desde RD$1,000</strong>Miércoles a domicilio</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-casa"/></svg><span><strong>Desde <span data-precio-domicilio>RD$1,000</span></strong>Miércoles a domicilio</span></li>
         <li><svg class="ico" aria-hidden="true"><use href="#i-camara"/></svg><span><strong>2,700+</strong>seguidores en Instagram</span></li>
       </ul>
     </div>
@@ -247,7 +255,7 @@
       <div class="divisor-poste reveal" aria-hidden="true"><span class="poste"><span class="poste__cilindro"></span></span></div>
       <p class="eyebrow eyebrow--vena-oscura reveal">Servicios</p>
       <h2 class="titulo reveal" id="servicios-titulo">Corte, barba y detalle</h2>
-      <p class="cabecera__texto reveal">Cada servicio se ajusta a tu pelo y a tu estilo. Toca uno para ver qué incluye. Los precios de la barbería se consultan por WhatsApp; el domicilio de los miércoles arranca en RD$1,000.</p>
+      <p class="cabecera__texto reveal">Cada servicio se ajusta a tu pelo y a tu estilo. Toca uno para ver qué incluye. Los precios de la barbería se consultan por WhatsApp; el domicilio de los miércoles arranca en <span data-precio-domicilio>RD$1,000</span>.</p>
     </header>
     <div class="servicios__panel reveal" data-servicios data-nota="10">
       <noscript><p class="nota-sin-js">Servicios: corte con fade, perfilado (line-up), barba, corte + barba, rayas y servicio a domicilio los miércoles.</p></noscript>
@@ -297,10 +305,10 @@
       </div>
       <p class="eyebrow eyebrow--vena reveal">Solo los miércoles</p>
       <h2 class="titulo titulo--claro reveal" id="domicilio-titulo">La barbería <span class="script">va a tu casa</span></h2>
-      <p class="domicilio__texto reveal">Los miércoles Yeron trabaja 100&nbsp;% a domicilio. El servicio arranca en RD$1,000 y el precio final se cotiza según la distancia.</p>
+      <p class="domicilio__texto reveal">Los miércoles Yeron trabaja 100&nbsp;% a domicilio. El servicio arranca en <span data-precio-domicilio>RD$1,000</span> y el precio final se cotiza según la distancia.</p>
       <div class="precio-grande reveal">
         <small>Desde</small>
-        <strong>RD$1,000</strong>
+        <strong><span data-precio-domicilio>RD$1,000</span></strong>
         <span>+ distancia · se cotiza por WhatsApp</span>
       </div>
       <ol class="pasos reveal-grupo">
@@ -424,7 +432,7 @@
       <p class="reveal">Eliges servicio, día y hora. Al final se abre WhatsApp con tu mensaje listo para enviárselo a Yeron, y él te confirma. Esta página no guarda tus datos.</p>
       <ul class="dias-resumen reveal">
         <li><span class="punto punto--azul" aria-hidden="true"></span><strong>Lun, mar, jue y vie</strong> En la barbería · 8:00&nbsp;a.&nbsp;m.–9:00&nbsp;p.&nbsp;m.</li>
-        <li><span class="punto punto--rojo" aria-hidden="true"></span><strong>Miércoles</strong> 100&nbsp;% a domicilio · desde RD$1,000</li>
+        <li><span class="punto punto--rojo" aria-hidden="true"></span><strong>Miércoles</strong> 100&nbsp;% a domicilio · desde <span data-precio-domicilio>RD$1,000</span></li>
         <li><span class="punto" aria-hidden="true"></span><strong>Sáb y dom</strong> <span class="chip-pendiente" data-pendiente="Horario de sábado y domingo">Por confirmar</span></li>
       </ul>
       <div class="tarjeta-contacto reveal">
@@ -460,7 +468,8 @@
           <legend class="paso__titulo" tabindex="-1">¿Qué día y a qué hora?</legend>
           <p class="paso__ayuda">Días disponibles de las próximas dos semanas (hora de República Dominicana).</p>
           <div class="dias" data-dias role="radiogroup" aria-label="Día"></div>
-          <p class="aviso aviso--domicilio" data-aviso-miercoles hidden><svg class="ico" aria-hidden="true"><use href="#i-casa"/></svg><span>Los miércoles Yeron trabaja solo a domicilio: te pediremos tu sector y el precio arranca en RD$1,000 según la distancia.</span></p>
+          <p class="aviso aviso--cierre" data-cierres-nota hidden><svg class="ico" aria-hidden="true"><use href="#i-calendario"/></svg><span></span></p>
+          <p class="aviso aviso--domicilio" data-aviso-miercoles hidden><svg class="ico" aria-hidden="true"><use href="#i-casa"/></svg><span>Los miércoles Yeron trabaja solo a domicilio: te pediremos tu sector y el precio arranca en <span data-precio-domicilio>RD$1,000</span> según la distancia.</span></p>
           <div class="horas" data-horas role="radiogroup" aria-label="Hora"></div>
           <p class="campo__error" data-error-paso="2" role="alert"></p>
         </fieldset>
@@ -546,7 +555,7 @@
       </div>
       <div class="acordeon__item reveal">
         <h3><button type="button" class="acordeon__boton" aria-expanded="false" aria-controls="faq-2" id="faq-2-btn">¿Cómo funciona el servicio a domicilio?<span class="acordeon__icono" aria-hidden="true"></span></button></h3>
-        <div class="acordeon__panel" id="faq-2" role="region" aria-labelledby="faq-2-btn"><div><p>Es solo los miércoles. Escríbele por WhatsApp con tu sector y la hora que prefieres. El servicio arranca en RD$1,000 y el precio final depende de la distancia.</p></div></div>
+        <div class="acordeon__panel" id="faq-2" role="region" aria-labelledby="faq-2-btn"><div><p>Es solo los miércoles. Escríbele por WhatsApp con tu sector y la hora que prefieres. El servicio arranca en <span data-precio-domicilio>RD$1,000</span> y el precio final depende de la distancia.</p></div></div>
       </div>
       <div class="acordeon__item reveal">
         <h3><button type="button" class="acordeon__boton" aria-expanded="false" aria-controls="faq-3" id="faq-3-btn">¿Cómo reservo mi turno?<span class="acordeon__icono" aria-hidden="true"></span></button></h3>
@@ -558,7 +567,7 @@
       </div>
       <div class="acordeon__item reveal">
         <h3><button type="button" class="acordeon__boton" aria-expanded="false" aria-controls="faq-5" id="faq-5-btn">¿Cuánto cuesta un corte?<span class="acordeon__icono" aria-hidden="true"></span></button></h3>
-        <div class="acordeon__panel" id="faq-5" role="region" aria-labelledby="faq-5-btn"><div><p>Los precios de la barbería se consultan por WhatsApp <span class="chip-pendiente" data-pendiente="Lista de precios de la barbería">precios por confirmar</span>. El servicio a domicilio de los miércoles arranca en RD$1,000.</p></div></div>
+        <div class="acordeon__panel" id="faq-5" role="region" aria-labelledby="faq-5-btn"><div><p>Los precios de la barbería se consultan por WhatsApp <span class="chip-pendiente" data-pendiente="Lista de precios de la barbería">precios por confirmar</span>. El servicio a domicilio de los miércoles arranca en <span data-precio-domicilio>RD$1,000</span>.</p></div></div>
       </div>
       <div class="acordeon__item reveal">
         <h3><button type="button" class="acordeon__boton" aria-expanded="false" aria-controls="faq-6" id="faq-6-btn">¿Dónde veo más trabajos de Yeron?<span class="acordeon__icono" aria-hidden="true"></span></button></h3>
@@ -687,6 +696,7 @@
 
 <div class="toast" role="status" aria-live="polite" data-toast></div>
 
+<script src="config.js"></script>
 <script src="script.js" defer></script>
 </body>
 </html>

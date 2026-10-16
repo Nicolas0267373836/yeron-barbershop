@@ -69,10 +69,11 @@
       foto: 'images/cortes/fade-con-raya.webp', alt: 'Ejemplo de raya marcada al lado sobre un fade bajo',
     },
     {
-      id: 'domicilio', nombre: 'A domicilio', icono: 'i-casa', precio: 'Desde RD$1,000', destacado: true,
+      id: 'domicilio', nombre: 'A domicilio', icono: 'i-casa', destacado: true,
+      get precio() { return `Desde ${NEGOCIO.domicilioDesde}`; },   // la tarifa se cambia desde el panel
       resumen: 'Solo los miércoles. Yeron va a tu casa.',
-      texto: 'Los miércoles Yeron trabaja 100 % a domicilio. El servicio arranca en RD$1,000 y el precio final se cotiza según la distancia.',
-      incluye: ['El servicio que elijas, en tu casa', 'Precio desde RD$1,000', 'La distancia se cotiza por WhatsApp'],
+      get texto() { return `Los miércoles Yeron trabaja 100 % a domicilio. El servicio arranca en ${NEGOCIO.domicilioDesde} y el precio final se cotiza según la distancia.`; },
+      get incluye() { return ['El servicio que elijas, en tu casa', `Precio desde ${NEGOCIO.domicilioDesde}`, 'La distancia se cotiza por WhatsApp']; },
     },
   ];
 
@@ -234,6 +235,164 @@
   // Estado compartido
   let proximoMiercoles = null;
   let reserva = null;
+
+  /* ------------------------------------------------------------------------
+     Datos en vivo (Supabase): horario, días cerrados, aviso, tarifa y horas ocupadas.
+     Si config.js está vacío, la web funciona sola con los datos de arriba.
+     La clave «anon» es pública por diseño; los permisos los fija la base (RLS).
+     ------------------------------------------------------------------------ */
+  const CFG = window.YERON_CONFIG || {};
+  const enVivo = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  const CIERRES = {};            // 'AAAA-MM-DD' → { tipo: 'feriado' | 'cerrado', motivo }
+  const OCUPADAS = new Set();    // 'AAAA-MM-DD|hora'
+  const AVISO = { activo: false, texto: '' };
+  let horarioEnVivo = false;
+  let repintarEstado = null;
+  let ultimaCarga = 0;
+  const esDiaDomicilio = (dow) => Boolean(HORARIO[dow] && HORARIO[dow].modo === 'domicilio');
+
+  const api = async (ruta, { metodo = 'GET', cuerpo, espera = 6000 } = {}) => {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), espera);
+    try {
+      const headers = { apikey: CFG.supabaseAnonKey, 'Content-Type': 'application/json' };
+      if (String(CFG.supabaseAnonKey).startsWith('eyJ')) headers.Authorization = `Bearer ${CFG.supabaseAnonKey}`;
+      const r = await fetch(`${String(CFG.supabaseUrl).replace(/\/$/, '')}/rest/v1/${ruta}`, {
+        method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined, signal: ctl.signal,
+      });
+      const texto = await r.text();
+      let datos = null;
+      try { datos = texto ? JSON.parse(texto) : null; } catch (err) { datos = null; }
+      if (!r.ok) {
+        const e = new Error((datos && datos.message) || `http_${r.status}`);
+        e.codigo = (datos && datos.message) || '';
+        e.status = r.status;
+        throw e;
+      }
+      return datos;
+    } finally { clearTimeout(t); }
+  };
+
+  const aplicarHorario = (filas) => {
+    filas.forEach((f) => {
+      if (f.dow < 0 || f.dow > 6) return;
+      if (f.modo === 'barberia' || f.modo === 'domicilio') HORARIO[f.dow] = { abre: f.abre, cierra: f.cierra, modo: f.modo };
+      else if (f.modo === 'cerrado') HORARIO[f.dow] = { abre: 0, cierra: 0, modo: 'cerrado' };
+      else HORARIO[f.dow] = null;
+    });
+  };
+  const aplicarCierres = (filas) => {
+    Object.keys(CIERRES).forEach((k) => delete CIERRES[k]);
+    filas.forEach((f) => { CIERRES[f.fecha] = { tipo: f.tipo, motivo: f.motivo || '' }; });
+  };
+  const aplicarOcupadas = (filas) => {
+    OCUPADAS.clear();
+    filas.forEach((f) => OCUPADAS.add(`${f.fecha}|${f.hora}`));
+  };
+  const aplicarConfig = (f) => {
+    NEGOCIO.domicilioDesde = `RD$${miles(f.domicilio_desde)}`;
+    AVISO.activo = Boolean(f.aviso_activo && f.aviso);
+    AVISO.texto = f.aviso || '';
+  };
+
+  /** Frase para un día cerrado: «cerrado por feriado», «cerrado (motivo)». */
+  const frasePorCierre = (c) => `cerrado${c.motivo ? ` (${c.motivo})` : (c.tipo === 'feriado' ? ' por feriado' : '')}`;
+  const cierresProximos = (dias = 14) => {
+    const ahora = ahoraRD();
+    const lista = [];
+    for (let k = 0; k < dias; k += 1) {
+      const dt = diaRD(ahora, k);
+      const c = CIERRES[claveFecha(dt)];
+      if (c) lista.push({ k, dt, c });
+    }
+    return lista;
+  };
+
+  const pintarPrecios = () => {
+    $$('[data-precio-domicilio]').forEach((el) => { el.textContent = NEGOCIO.domicilioDesde; });
+    $$('[data-precio-domicilio-desde]').forEach((el) => { el.textContent = `Desde ${NEGOCIO.domicilioDesde}`; });
+  };
+  const pintarTabla = () => {
+    const tb = $('[data-horario-filas]');
+    if (!tb || !horarioEnVivo) return;
+    tb.innerHTML = [1, 2, 3, 4, 5, 6, 0].map((d) => {
+      const h = HORARIO[d];
+      let celda;
+      if (!h) celda = `<span class="chip-pendiente" data-pendiente="Horario de ${DIAS[d]}">Por confirmar</span>`;
+      else if (h.modo === 'cerrado') celda = 'Cerrado';
+      else if (h.modo === 'domicilio') celda = `<span class="chip chip--rojo">100${NBSP}%${NBSP}a${NBSP}domicilio</span>`;
+      else celda = `${formatoHora(h.abre)}–${formatoHora(h.cierra)}`;
+      return `<tr data-dia="${d}"><th scope="row">${cap(DIAS[d])}</th><td>${celda}</td></tr>`;
+    }).join('');
+  };
+  const pintarResumenHorario = () => {
+    const el = $('[data-horario-resumen]');
+    if (!el || !horarioEnVivo) return;
+    const dias = [1, 2, 3, 4, 5, 6, 0].filter((d) => HORARIO[d] && HORARIO[d].modo === 'barberia');
+    if (!dias.length) { el.textContent = 'Horario por confirmar'; return; }
+    const nombres = dias.map((d, i) => (i === 0 ? cap(DIAS_CORTOS[d]) : DIAS_CORTOS[d]));
+    const lista = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
+    const horas = new Set(dias.map((d) => `${HORARIO[d].abre}-${HORARIO[d].cierra}`));
+    el.textContent = horas.size === 1
+      ? `${lista} · ${formatoHora(HORARIO[dias[0]].abre)}–${formatoHora(HORARIO[dias[0]].cierra)}`
+      : `${lista} · horario según el día`;
+  };
+  const pintarAvisos = () => {
+    const cont = $('[data-avisos]');
+    if (!cont) return;
+    const items = [];
+    if (AVISO.activo) items.push(AVISO.texto);
+    cierresProximos(14).forEach(({ k, dt, c }) => {
+      const cuando = `${k === 0 ? 'Hoy, ' : k === 1 ? 'Mañana, ' : ''}${fechaLarga(dt)}`;
+      items.push(`${cap(cuando)}: ${frasePorCierre(c)}`);
+    });
+    $('[data-avisos-lista]', cont).innerHTML = items.map((t) => `<li>${esc(t)}</li>`).join('');
+    cont.hidden = items.length === 0;
+  };
+  const refrescarDatos = () => {
+    pintarPrecios();
+    pintarTabla();
+    pintarResumenHorario();
+    pintarAvisos();
+    if (repintarEstado) repintarEstado();
+    if (reserva && reserva.refrescar) reserva.refrescar();
+  };
+
+  const rangoFechas = () => {
+    const ahora = ahoraRD();
+    return { desde: claveFecha(diaRD(ahora, 0)), hasta: claveFecha(diaRD(ahora, 30)) };
+  };
+  const cargarOcupadas = async () => {
+    if (!enVivo) return;
+    const { desde, hasta } = rangoFechas();
+    const filas = await api('rpc/horas_ocupadas', { metodo: 'POST', cuerpo: { p_desde: desde, p_hasta: hasta } });
+    if (Array.isArray(filas)) aplicarOcupadas(filas);
+  };
+  const cargarEnVivo = async () => {
+    if (!enVivo) return;
+    const { desde, hasta } = rangoFechas();
+    const r = await Promise.allSettled([
+      api('horario?select=dow,modo,abre,cierra&order=dow'),
+      api(`cierres?select=fecha,tipo,motivo&fecha=gte.${desde}&order=fecha`),
+      api('config?select=domicilio_desde,aviso,aviso_activo&id=eq.1'),
+      api('rpc/horas_ocupadas', { metodo: 'POST', cuerpo: { p_desde: desde, p_hasta: hasta } }),
+    ]);
+    const ok = (i) => r[i].status === 'fulfilled' && Array.isArray(r[i].value);
+    if (ok(0) && r[0].value.length) { aplicarHorario(r[0].value); horarioEnVivo = true; }
+    if (ok(1)) aplicarCierres(r[1].value);
+    if (ok(2) && r[2].value[0]) aplicarConfig(r[2].value[0]);
+    if (ok(3)) aplicarOcupadas(r[3].value);
+    ultimaCarga = Date.now();
+    refrescarDatos();
+  };
+  const iniciarEnVivo = () => {
+    if (!enVivo) return;
+    cargarEnVivo().catch(() => {});
+    setInterval(() => { if (!document.hidden) cargarEnVivo().catch(() => {}); }, 300000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && Date.now() - ultimaCarga > 60000) cargarEnVivo().catch(() => {});
+    });
+  };
 
   /* ------------------------------------------------------------------------
      Carga nítida: desenfoque → nítido cuando la foto termina de cargar
@@ -455,10 +614,16 @@
       const ahora = ahoraRD();
       const hora = ahora.h + ahora.min / 60;
       const hoy = HORARIO[ahora.dow];
+      const cierreHoy = CIERRES[claveFecha(diaRD(ahora, 0))];
+      const cierreManana = CIERRES[claveFecha(diaRD(ahora, 1))];
       let texto;
       let abierto = 'no';
-      if (!hoy) {
+      if (cierreHoy) {
+        texto = `Hoy ${frasePorCierre(cierreHoy)}`;
+      } else if (!hoy) {
         texto = 'Fin de semana: horario por confirmar';
+      } else if (hoy.modo === 'cerrado') {
+        texto = 'Hoy cerrado';
       } else if (hoy.modo === 'domicilio') {
         if (hora < hoy.cierra) { texto = 'Hoy miércoles: solo a domicilio'; abierto = 'domicilio'; }
         else texto = `Cerrado · mañana abre a las ${formatoHora(HORARIO[4] ? HORARIO[4].abre : 8)}`;
@@ -469,7 +634,9 @@
         abierto = 'si';
       } else {
         const manana = HORARIO[(ahora.dow + 1) % 7];
-        if (!manana) texto = 'Cerrado · fin de semana por confirmar';
+        if (cierreManana) texto = `Cerrado · mañana ${frasePorCierre(cierreManana)}`;
+        else if (!manana) texto = 'Cerrado · fin de semana por confirmar';
+        else if (manana.modo === 'cerrado') texto = 'Cerrado · mañana no abre';
         else if (manana.modo === 'domicilio') texto = 'Cerrado · mañana miércoles, a domicilio';
         else texto = `Cerrado · mañana abre a las ${formatoHora(manana.abre)}`;
       }
@@ -493,7 +660,7 @@
       });
 
       let delta = (3 - ahora.dow + 7) % 7;
-      if (delta === 0 && hora >= HORARIO[3].cierra) delta = 7;
+      if (delta === 0 && HORARIO[3] && hora >= HORARIO[3].cierra) delta = 7;
       const mie = diaRD(ahora, delta);
       proximoMiercoles = { fecha: mie, esHoy: delta === 0 };
       const corto = `${mie.getUTCDate()} de ${MESES_CORTOS[mie.getUTCMonth()]}.`;
@@ -503,6 +670,7 @@
       $$('[data-anio]').forEach((el) => { el.textContent = ahora.y; });
       document.dispatchEvent(new CustomEvent('yeron:estado'));
     };
+    repintarEstado = pintar;
     pintar();
     setInterval(pintar, 60000);
   };
@@ -522,7 +690,7 @@
         <span class="servicio__nombre">${esc(s.nombre)}</span>
         <span class="servicio__resumen">${esc(s.resumen)}</span>
         <span class="servicio__pie">
-          <span class="servicio__precio${s.precio ? '' : ' servicio__precio--consultar'}"${s.precio ? '' : ` data-pendiente="Precio: ${esc(s.nombre)}"`}>${s.precio ? esc(s.precio) : 'Precio: consultar'}</span>
+          <span class="servicio__precio${s.precio ? '' : ' servicio__precio--consultar'}"${s.precio ? '' : ` data-pendiente="Precio: ${esc(s.nombre)}"`}${s.id === 'domicilio' ? ' data-precio-domicilio-desde' : ''}>${s.precio ? esc(s.precio) : 'Precio: consultar'}</span>
           <span class="servicio__ver">Ver detalle ${icono('i-flecha', 'ico')}</span>
         </span>
       </button>`).join('');
@@ -901,7 +1069,7 @@
   };
 
   /* ------------------------------------------------------------------------
-     Reserva en 4 pasos → mensaje de WhatsApp (no guarda ni envía datos)
+     Reserva en 4 pasos → guarda la cita en el panel (si hay Supabase) y abre WhatsApp
      ------------------------------------------------------------------------ */
   const initReserva = () => {
     const cont = $('[data-reserva]');
@@ -920,6 +1088,7 @@
     const diasEl = $('[data-dias]', form);
     const horasEl = $('[data-horas]', form);
     const avisoMie = $('[data-aviso-miercoles]', form);
+    const notaCierres = $('[data-cierres-nota]', form);
     const inNombre = $('#res-nombre', form);
     const inTel = $('#res-telefono', form);
     const inSector = $('#res-sector', form);
@@ -934,12 +1103,12 @@
         <input type="radio" name="servicio" id="srv-${s.id}" value="${s.id}">
         <label for="srv-${s.id}">
           <span class="opcion-servicio__icono">${icono(s.icono)}</span>
-          <span><span class="opcion-servicio__nombre">${esc(s.nombre)}</span><span class="opcion-servicio__precio">${s.precio ? esc(s.precio) : 'Precio: consultar'}</span></span>
+          <span><span class="opcion-servicio__nombre">${esc(s.nombre)}</span><span class="opcion-servicio__precio"${s.id === 'domicilio' ? ' data-precio-domicilio-desde' : ''}>${s.precio ? esc(s.precio) : 'Precio: consultar'}</span></span>
           <span class="opcion-servicio__check">${icono('i-check')}</span>
         </label>
       </div>`).join('');
 
-    const esDomicilio = () => st.servicio === 'domicilio' || st.dow === 3;
+    const esDomicilio = () => st.servicio === 'domicilio' || esDiaDomicilio(st.dow);
     const servicio = () => SERVICIOS.find((s) => s.id === st.servicio);
     const fechaSel = () => {
       const [y, m, d] = st.fecha.split('-').map(Number);
@@ -957,9 +1126,11 @@
       const esHoy = st.fecha === claveFecha(diaRD(ahora, 0));
       const html = [];
       for (let x = h.abre; x < h.cierra; x += 1) {
-        const deshabilitada = esHoy && x < ahora.h + 1;
+        const pasada = esHoy && x < ahora.h + 1;
+        const ocupada = OCUPADAS.has(`${st.fecha}|${x}`);
+        const deshabilitada = pasada || ocupada;
         const marcada = st.hora === x && !deshabilitada;
-        html.push(`<div class="hora"><input type="radio" name="hora" id="hora-${x}" value="${x}"${deshabilitada ? ' disabled' : ''}${marcada ? ' checked' : ''}><label for="hora-${x}">${formatoHora(x)}</label></div>`);
+        html.push(`<div class="hora${ocupada ? ' hora--ocupada' : ''}"><input type="radio" name="hora" id="hora-${x}" value="${x}"${deshabilitada ? ' disabled' : ''}${marcada ? ' checked' : ''}><label for="hora-${x}">${formatoHora(x)}${ocupada ? '<span class="sr"> (ocupada)</span>' : ''}</label></div>`);
       }
       horasEl.innerHTML = html.join('');
       if (st.hora !== null && !$(`input[value="${st.hora}"]:checked`, horasEl)) st.hora = null;
@@ -975,7 +1146,10 @@
         const clave = claveFecha(dt);
         let deshabilitado = false;
         let etiqueta = '';
-        if (!h) { deshabilitado = true; etiqueta = 'Por confirmar'; }
+        const cierre = CIERRES[clave];
+        if (cierre) { deshabilitado = true; etiqueta = cierre.tipo === 'feriado' ? 'Feriado' : 'Cerrado'; }
+        else if (!h) { deshabilitado = true; etiqueta = 'Por confirmar'; }
+        else if (h.modo === 'cerrado') { deshabilitado = true; etiqueta = 'Cerrado'; }
         else {
           if (h.modo === 'domicilio') etiqueta = 'Domicilio';
           if (st.servicio === 'domicilio' && h.modo !== 'domicilio') { deshabilitado = true; etiqueta = 'Solo mié.'; }
@@ -984,12 +1158,17 @@
         if (!etiqueta && k === 0) etiqueta = 'Hoy';
         else if (!etiqueta && k === 1) etiqueta = 'Mañana';
         const marcado = st.fecha === clave && !deshabilitado;
-        const nombre = `${DIAS[dow]} ${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}${etiqueta ? `, ${etiqueta.toLowerCase()}` : ''}`;
-        html.push(`<div class="dia${dow === 3 ? ' dia--miercoles' : ''}"><input type="radio" name="dia" id="dia-${clave}" value="${clave}" data-dow="${dow}" aria-label="${nombre}"${deshabilitado ? ' disabled' : ''}${marcado ? ' checked' : ''}><label for="dia-${clave}"><span class="dia__semana">${DIAS_CORTOS[dow]}</span><span class="dia__num">${dt.getUTCDate()}</span><span class="dia__mes">${MESES_CORTOS[dt.getUTCMonth()]}</span>${etiqueta ? `<span class="dia__tag">${etiqueta}</span>` : ''}</label></div>`);
+        const nombre = `${DIAS[dow]} ${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}${etiqueta ? `, ${etiqueta.toLowerCase()}` : ''}${cierre && cierre.motivo ? ` (${cierre.motivo})` : ''}`;
+        html.push(`<div class="dia${esDiaDomicilio(dow) ? ' dia--miercoles' : ''}${cierre ? ' dia--cierre' : ''}"><input type="radio" name="dia" id="dia-${clave}" value="${clave}" data-dow="${dow}" aria-label="${nombre}"${deshabilitado ? ' disabled' : ''}${marcado ? ' checked' : ''}><label for="dia-${clave}"><span class="dia__semana">${DIAS_CORTOS[dow]}</span><span class="dia__num">${dt.getUTCDate()}</span><span class="dia__mes">${MESES_CORTOS[dt.getUTCMonth()]}</span>${etiqueta ? `<span class="dia__tag">${etiqueta}</span>` : ''}</label></div>`);
       }
       diasEl.innerHTML = html.join('');
       if (st.fecha && !$(`input[value="${st.fecha}"]:checked`, diasEl)) { st.fecha = null; st.dow = null; st.hora = null; }
-      avisoMie.hidden = !(st.dow === 3 && st.servicio !== 'domicilio');
+      avisoMie.hidden = !(esDiaDomicilio(st.dow) && st.servicio !== 'domicilio');
+      const cierres = cierresProximos(14);
+      if (notaCierres) {
+        notaCierres.hidden = cierres.length === 0;
+        $('span', notaCierres).textContent = `Días cerrados: ${cierres.map(({ dt, c }) => `${DIAS_CORTOS[dt.getUTCDay()]} ${dt.getUTCDate()} de ${MESES_CORTOS[dt.getUTCMonth()]}.${c.motivo ? ` (${c.motivo})` : (c.tipo === 'feriado' ? ' (feriado)' : '')}`).join(' · ')}`;
+      }
       renderHoras();
     };
 
@@ -1071,7 +1250,10 @@
     const irA = (n, dir = 1) => {
       const anterior = st.paso;
       st.paso = n;
-      if (n === 2) renderDias();
+      if (n === 2) {
+        renderDias();
+        if (enVivo) cargarOcupadas().then(() => { if (st.paso === 2) renderHoras(); }).catch(() => {});
+      }
       if (n === 3) {
         $$('[data-solo-domicilio]', form).forEach((el) => { el.hidden = !esDomicilio(); });
         inSector.required = esDomicilio();
@@ -1110,14 +1292,14 @@
       if (e.target.name !== 'servicio') return;
       st.servicio = e.target.value;
       errorPaso(1, '');
-      if (st.servicio === 'domicilio' && st.dow !== null && st.dow !== 3) { st.fecha = null; st.dow = null; st.hora = null; }
+      if (st.servicio === 'domicilio' && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
     });
     diasEl.addEventListener('change', (e) => {
       if (e.target.name !== 'dia') return;
       st.fecha = e.target.value;
       st.dow = Number(e.target.dataset.dow);
       st.hora = null;
-      avisoMie.hidden = !(st.dow === 3 && st.servicio !== 'domicilio');
+      avisoMie.hidden = !(esDiaDomicilio(st.dow) && st.servicio !== 'domicilio');
       errorPaso(2, '');
       renderHoras();
     });
@@ -1145,23 +1327,79 @@
       if (b) irA(Number(b.dataset.ir), -1);
     });
 
-    btnEnviar.addEventListener('click', (e) => {
+    const textosExito = { titulo: $('h3', exito).textContent, texto: $('p', exito).textContent };
+    const mostrarExito = (guardada) => {
+      btnEnviar.classList.remove('is-loading');
+      btnEnviar.removeAttribute('aria-busy');
+      form.hidden = true;
+      indicadores.forEach((li) => { li.classList.remove('is-activo'); li.classList.add('is-hecho'); });
+      barra.style.width = '100%';
+      $('h3', exito).textContent = guardada ? 'Tu cita quedó registrada' : textosExito.titulo;
+      $('p', exito).textContent = guardada
+        ? 'Yeron la ve en su panel y te confirma por WhatsApp. Para agilizarlo, envía el mensaje que abrimos. Si no se abrió, usa los botones de abajo.'
+        : textosExito.texto;
+      exito.hidden = false;
+      $('[data-exito-wa]', exito).href = btnEnviar.href;
+      exito.focus();
+      anuncio.textContent = guardada ? 'Tu cita quedó registrada.' : 'Tu mensaje está listo en WhatsApp.';
+    };
+    const ERRORES_CITA = {
+      hora_ocupada: 'Esa hora acaba de ser tomada. Elige otra.',
+      dia_cerrado: 'Ese día Yeron no atiende. Elige otro día.',
+      hora_pasada: 'Esa hora ya pasó. Elige otra.',
+      hora_invalida: 'Esa hora no está disponible. Elige otra.',
+      dia_no_disponible: 'Ese día no está disponible. Elige otro.',
+      fecha_invalida: 'Esa fecha no está disponible. Elige otra.',
+      servicio_no_disponible: 'Ese servicio no está disponible ese día. Elige otro día.',
+    };
+    const guardarCita = () => api('rpc/crear_cita', {
+      metodo: 'POST',
+      espera: 8000,
+      cuerpo: {
+        p_servicio: st.servicio,
+        p_fecha: st.fecha,
+        p_hora: st.hora,
+        p_nombre: inNombre.value.trim(),
+        p_telefono: inTel.value.trim(),
+        p_sector: esDomicilio() ? inSector.value.trim() : '',
+        p_personas: esDomicilio() ? Number(inPersonas.value) || 1 : 1,
+        p_nota: inNota.value.trim(),
+      },
+    });
+
+    btnEnviar.addEventListener('click', async (e) => {
       if (!(validar(1) && validar(2) && validar(3))) { e.preventDefault(); return; }
+      if (btnEnviar.classList.contains('is-loading')) { e.preventDefault(); return; }
       ultimoMensaje = construirMensaje();
       btnEnviar.href = waLink(ultimoMensaje);
       btnEnviar.classList.add('is-loading');
       btnEnviar.setAttribute('aria-busy', 'true');
-      setTimeout(() => {
-        btnEnviar.classList.remove('is-loading');
-        btnEnviar.removeAttribute('aria-busy');
-        form.hidden = true;
-        indicadores.forEach((li) => { li.classList.remove('is-activo'); li.classList.add('is-hecho'); });
-        barra.style.width = '100%';
-        exito.hidden = false;
-        $('[data-exito-wa]', exito).href = btnEnviar.href;
-        exito.focus();
-        anuncio.textContent = 'Tu mensaje está listo en WhatsApp.';
-      }, reducido() ? 60 : 900);
+      const espera = new Promise((r) => setTimeout(r, reducido() ? 60 : 900));
+      if (!enVivo) { await espera; mostrarExito(false); return; }   // sin panel: abre WhatsApp como siempre
+
+      e.preventDefault();   // con panel: primero se guarda la cita y luego se abre WhatsApp
+      let guardada = false;
+      try {
+        await Promise.all([guardarCita(), espera]);
+        guardada = true;
+      } catch (err) {
+        const msg = ERRORES_CITA[err.codigo];
+        if (msg) {            // la hora o el día dejó de estar disponible: volver a elegir
+          btnEnviar.classList.remove('is-loading');
+          btnEnviar.removeAttribute('aria-busy');
+          st.hora = null;
+          await cargarEnVivo().catch(() => {});
+          irA(2, -1);
+          errorPaso(2, msg);
+          return;
+        }
+        toast(err.codigo === 'demasiadas_citas'
+          ? 'Ya tienes 3 citas activas con ese WhatsApp. Escríbele a Yeron para cambiarlas.'
+          : 'No se pudo registrar la cita en el panel. Envía el mensaje por WhatsApp.');
+        await espera;
+      }
+      mostrarExito(guardada);
+      window.open(btnEnviar.href, '_blank', 'noopener');
     });
 
     const reiniciar = () => {
@@ -1184,6 +1422,7 @@
     irA(1);
 
     return {
+      refrescar() { if (st.paso === 2) renderDias(); },
       preseleccionar(id) {
         if (!exito.hidden) reiniciar();
         const radio = $(`#srv-${id}`, form);
@@ -1191,7 +1430,7 @@
         radio.checked = true;
         st.servicio = id;
         errorPaso(1, '');
-        if (id === 'domicilio' && st.dow !== null && st.dow !== 3) { st.fecha = null; st.dow = null; st.hora = null; }
+        if (id === 'domicilio' && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
         irA(2, 1);
       },
     };
@@ -1263,6 +1502,7 @@
   iniciar('galería', initGaleria);
   reserva = iniciar('reserva', initReserva);
   iniciar('acordeón', initAcordeon);
+  iniciar('datos en vivo', iniciarEnVivo);
   iniciar('copiar', initCopiar);
   iniciar('whatsapp', initWhatsappFlotante);
   iniciar('parallax', initParallax);
@@ -1270,5 +1510,5 @@
   iniciar('contadores', initContadores);
   iniciar('revelado', initReveal);
 
-  window.YERON = { NEGOCIO, HORARIO, SERVICIOS, GALERIA };
+  window.YERON = { NEGOCIO, HORARIO, SERVICIOS, GALERIA, CIERRES };
 })();
