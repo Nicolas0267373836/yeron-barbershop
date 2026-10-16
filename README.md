@@ -18,7 +18,7 @@ Sitio de una página para **Yeron Barbershop** (Instagram [@yeron_barber](https:
 | `config.js` | `api: '/api'` activa el panel; `api: ''` deja la web 100 % estática. No lleva claves |
 | `admin/` | Panel administrativo de Yeron (`index.html`, `admin.css`, `admin.js`) |
 | `api/` | Funciones de servidor en Vercel: `publico.js`, `reservar.js`, `admin.js` (y `_lib/`) |
-| `neon/schema.sql` | Tablas y función `crear_cita` para la base Neon |
+| `neon/schema.sql`, `api/_lib/esquema.js` | Tablas y función `crear_cita` (el segundo se aplica solo; deben coincidir) |
 | `package.json`, `vercel.json` | Dependencia del driver de Neon, `npm run clave` y cabeceras |
 | `scripts/hash-password.mjs` | Genera el hash de la contraseña de Yeron |
 | `images/` | Fotos optimizadas (WebP), logo en versión clara y oscura, favicon e imagen para compartir |
@@ -201,7 +201,7 @@ Panel     ──► /api/admin     (todo lo demás; exige la sesión de Yeron)
 - Con `api: ''` en `config.js` la web es 100 % estática y no usa el panel.
 
 **Puesta en marcha (una vez)**
-1. **Neon**: crea un proyecto nuevo solo para Yeron (región cercana, por ejemplo US East). En *SQL Editor* pega `neon/schema.sql` y pulsa *Run* (se puede repetir sin borrar datos). Copia la *connection string* (Dashboard → Connect).
+1. **Neon** (igual que en DentalSpace): en Vercel abre el proyecto de Yeron → *Storage* → *Create Database* → **Neon** y conéctalo a este proyecto. Vercel crea solo `DATABASE_URL` / `POSTGRES_URL`. Las tablas y la función `crear_cita` se crean solas la primera vez que alguien usa la web (`api/_lib/esquema.js`); `neon/schema.sql` es la misma definición por si prefieres pegarla en el *SQL Editor* de Neon.
 2. **Contraseña de Yeron**: en esta carpeta ejecuta `npm run clave`. Pide la contraseña sin mostrarla y devuelve `ADMIN_CLAVE_HASH` y `SESSION_SECRET`. La contraseña no se guarda en ningún archivo.
 3. **Vercel → Settings → Environment Variables** (Production):
    | Variable | Valor |
@@ -210,7 +210,7 @@ Panel     ──► /api/admin     (todo lo demás; exige la sesión de Yeron)
    | `ADMIN_USUARIO` | el correo o nombre con el que Yeron entrará |
    | `ADMIN_CLAVE_HASH` | la línea que dio `npm run clave` |
    | `SESSION_SECRET` | la línea que dio `npm run clave` |
-   También puedes conectar Neon desde Vercel → Storage / Marketplace, que crea `DATABASE_URL` sola.
+   Si conectas Neon desde Vercel (paso 1), `DATABASE_URL` ya está; solo faltan las otras tres.
 4. Publica en Vercel (sin build: Vercel instala `@neondatabase/serverless` y sirve `api/` como funciones). Después de cambiar variables, vuelve a desplegar.
 5. Prueba: entra a `/admin`, cierra un día de prueba, mira la web, vuelve a abrirlo.
 
