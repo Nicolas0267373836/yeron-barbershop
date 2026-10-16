@@ -15,12 +15,15 @@ Sitio de una página para **Yeron Barbershop** (Instagram [@yeron_barber](https:
 | `styles.css` | Tokens, componentes, secciones, movimiento y responsive (1440 / 768 / 390) |
 | `script.js` | **Datos editables** (negocio, horario, 6 servicios, galería) e interacciones |
 | `vista-responsive.html` | Escritorio, tablet y móvil uno junto a otro |
-| `config.js` | Conexión pública a Supabase (URL y clave anon; vacío = web 100 % estática) |
+| `config.js` | `api: '/api'` activa el panel; `api: ''` deja la web 100 % estática. No lleva claves |
 | `admin/` | Panel administrativo de Yeron (`index.html`, `admin.css`, `admin.js`) |
-| `supabase/schema.sql` | Tablas, seguridad (RLS) y funciones del panel |
+| `api/` | Funciones de servidor en Vercel: `publico.js`, `reservar.js`, `admin.js` (y `_lib/`) |
+| `neon/schema.sql` | Tablas y función `crear_cita` para la base Neon |
+| `package.json`, `vercel.json` | Dependencia del driver de Neon, `npm run clave` y cabeceras |
+| `scripts/hash-password.mjs` | Genera el hash de la contraseña de Yeron |
 | `images/` | Fotos optimizadas (WebP), logo en versión clara y oscura, favicon e imagen para compartir |
 
-No necesita build. Para verlo en local: `npx serve .` y abrir `http://localhost:3000` (o `python -m http.server`).
+No necesita build. Para ver la web en local: `npx serve .` (sin `/api` la web usa el modo WhatsApp). Para probar también el panel: `npx vercel dev` con las variables de entorno en `.env.local` (no se sube a Git).
 
 ## Secciones
 
@@ -184,17 +187,41 @@ Yeron gestiona desde `/admin` (por ejemplo `https://TU-DOMINIO/admin/`) y la web
 - **Días cerrados**: marcar un feriado o descanso. La web muestra un aviso rojo arriba, bloquea ese día en la reserva (etiqueta «Feriado» o «Cerrado») y el servidor rechaza reservas ese día.
 - **Horario**: horas de cada día, «Por confirmar» o «Cerrado», y el miércoles «A domicilio» (el domicilio solo existe los miércoles). Cambiar la tarifa «Desde RD$» del domicilio y publicar un aviso general.
 
-**Cómo funciona**: la web lee horario, días cerrados y avisos de Supabase cada 5 minutos y al volver a la pestaña. Al reservar, la cita se guarda con `crear_cita` y luego se abre WhatsApp. Si Supabase no responde, la web sigue funcionando como antes (solo WhatsApp). Si `config.js` está vacío, la web es 100 % estática.
+**Cómo funciona**
+
+```
+Navegador ──► /api/publico   (horario, días cerrados, aviso, horas ocupadas; sin datos personales)
+          ──► /api/reservar  (crea la cita; la base valida todo con crear_cita)
+Panel     ──► /api/admin     (todo lo demás; exige la sesión de Yeron)
+                   │
+                   └──► Neon (Postgres). DATABASE_URL solo existe en el servidor (Vercel).
+```
+
+- La web recarga los datos cada 5 minutos y al volver a la pestaña. Al reservar, la cita se guarda y luego se abre WhatsApp. Si la API no responde, la web sigue funcionando como antes (solo WhatsApp).
+- Con `api: ''` en `config.js` la web es 100 % estática y no usa el panel.
 
 **Puesta en marcha (una vez)**
-1. Crear un proyecto nuevo en Supabase solo para Yeron (no reutilizar webdom-citas ni otro cliente).
-2. SQL Editor → pegar `supabase/schema.sql` → Run.
-3. Authentication → Users → Add user con el correo y una contraseña de Yeron. En Authentication → Providers → Email, desactivar «Allow new users to sign up».
-4. Registrarlo como administrador (ver el final de `schema.sql`): `insert into public.admins (user_id) select id from auth.users where email = 'CORREO_DE_YERON';`
-5. En `config.js` poner `supabaseUrl` (Project Settings → API) y `supabaseAnonKey` (la clave publishable/anon). **Nunca** poner la clave `service_role` o secret: `config.js` es público.
-6. Publicar la carpeta completa (incluye `admin/` y `config.js`) y probar: iniciar sesión, cerrar un día de prueba y verlo en la web, reabrirlo.
+1. **Neon**: crea un proyecto nuevo solo para Yeron (región cercana, por ejemplo US East). En *SQL Editor* pega `neon/schema.sql` y pulsa *Run* (se puede repetir sin borrar datos). Copia la *connection string* (Dashboard → Connect).
+2. **Contraseña de Yeron**: en esta carpeta ejecuta `npm run clave`. Pide la contraseña sin mostrarla y devuelve `ADMIN_CLAVE_HASH` y `SESSION_SECRET`. La contraseña no se guarda en ningún archivo.
+3. **Vercel → Settings → Environment Variables** (Production):
+   | Variable | Valor |
+   |---|---|
+   | `DATABASE_URL` | la connection string de Neon |
+   | `ADMIN_USUARIO` | el correo o nombre con el que Yeron entrará |
+   | `ADMIN_CLAVE_HASH` | la línea que dio `npm run clave` |
+   | `SESSION_SECRET` | la línea que dio `npm run clave` |
+   También puedes conectar Neon desde Vercel → Storage / Marketplace, que crea `DATABASE_URL` sola.
+4. Publica en Vercel (sin build: Vercel instala `@neondatabase/serverless` y sirve `api/` como funciones). Después de cambiar variables, vuelve a desplegar.
+5. Prueba: entra a `/admin`, cierra un día de prueba, mira la web, vuelve a abrirlo.
 
-**Seguridad**: las citas guardan nombre y WhatsApp, por eso solo un usuario de la tabla `admins` puede leerlas (RLS). El público solo puede crear una cita (validada en el servidor, máx. 3 activas por número, sin doble reserva) y ver qué horas están ocupadas, sin datos personales. El panel lleva `noindex`. Zona horaria: America/Santo_Domingo.
+Para cambiar la contraseña: `npm run clave`, reemplaza `ADMIN_CLAVE_HASH` (y `SESSION_SECRET` para cerrar las sesiones abiertas) y vuelve a desplegar.
+
+**Seguridad**
+- La base no está expuesta: solo las funciones de `api/` la usan, con consultas parametrizadas.
+- Las citas (nombre y WhatsApp) solo salen por `/api/admin` con sesión. La web pública solo recibe fecha y hora de las horas ocupadas.
+- Sesión: cookie `HttpOnly`, `Secure`, `SameSite=Strict`, firmada con `SESSION_SECRET`, 7 días. El panel exige además una cabecera propia (protección CSRF).
+- Límites: 6 intentos fallidos de inicio de sesión por IP cada 15 minutos; 20 reservas por IP por hora; máximo 3 citas activas por número de WhatsApp; una cita por día y hora.
+- El panel lleva `noindex`. Zona horaria: America/Santo_Domingo.
 
 ## Antes de publicar
 

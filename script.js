@@ -254,12 +254,12 @@
   let reserva = null;
 
   /* ------------------------------------------------------------------------
-     Datos en vivo (Supabase): horario, días cerrados, aviso, tarifa y horas ocupadas.
-     Si config.js está vacío, la web funciona sola con los datos de arriba.
-     La clave «anon» es pública por diseño; los permisos los fija la base (RLS).
+     Datos en vivo (funciones /api + Neon): horario, días cerrados, aviso, tarifa y horas ocupadas.
+     Si config.js tiene «api» vacío, o la API no responde, la web funciona sola con los datos de arriba.
+     El navegador nunca ve la base de datos: solo habla con /api.
      ------------------------------------------------------------------------ */
   const CFG = window.YERON_CONFIG || {};
-  const enVivo = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  const enVivo = Boolean(CFG.api);
   const CIERRES = {};            // 'AAAA-MM-DD' → { tipo: 'feriado' | 'cerrado', motivo }
   const OCUPADAS = new Set();    // 'AAAA-MM-DD|hora'
   const AVISO = { activo: false, texto: '' };
@@ -272,17 +272,18 @@
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), espera);
     try {
-      const headers = { apikey: CFG.supabaseAnonKey, 'Content-Type': 'application/json' };
-      if (String(CFG.supabaseAnonKey).startsWith('eyJ')) headers.Authorization = `Bearer ${CFG.supabaseAnonKey}`;
-      const r = await fetch(`${String(CFG.supabaseUrl).replace(/\/$/, '')}/rest/v1/${ruta}`, {
-        method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined, signal: ctl.signal,
+      const r = await fetch(`${String(CFG.api).replace(/\/$/, '')}/${ruta}`, {
+        method: metodo,
+        headers: cuerpo ? { 'Content-Type': 'application/json' } : {},
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+        signal: ctl.signal,
       });
       const texto = await r.text();
       let datos = null;
       try { datos = texto ? JSON.parse(texto) : null; } catch (err) { datos = null; }
       if (!r.ok) {
-        const e = new Error((datos && datos.message) || `http_${r.status}`);
-        e.codigo = (datos && datos.message) || '';
+        const e = new Error((datos && datos.error) || `http_${r.status}`);
+        e.codigo = (datos && datos.error) || '';
         e.status = r.status;
         throw e;
       }
@@ -382,23 +383,18 @@
   const cargarOcupadas = async () => {
     if (!enVivo) return;
     const { desde, hasta } = rangoFechas();
-    const filas = await api('rpc/horas_ocupadas', { metodo: 'POST', cuerpo: { p_desde: desde, p_hasta: hasta } });
-    if (Array.isArray(filas)) aplicarOcupadas(filas);
+    const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
+    if (d && Array.isArray(d.ocupadas)) aplicarOcupadas(d.ocupadas);
   };
   const cargarEnVivo = async () => {
     if (!enVivo) return;
     const { desde, hasta } = rangoFechas();
-    const r = await Promise.allSettled([
-      api('horario?select=dow,modo,abre,cierra&order=dow'),
-      api(`cierres?select=fecha,tipo,motivo&fecha=gte.${desde}&order=fecha`),
-      api('config?select=domicilio_desde,aviso,aviso_activo&id=eq.1'),
-      api('rpc/horas_ocupadas', { metodo: 'POST', cuerpo: { p_desde: desde, p_hasta: hasta } }),
-    ]);
-    const ok = (i) => r[i].status === 'fulfilled' && Array.isArray(r[i].value);
-    if (ok(0) && r[0].value.length) { aplicarHorario(r[0].value); horarioEnVivo = true; }
-    if (ok(1)) aplicarCierres(r[1].value);
-    if (ok(2) && r[2].value[0]) aplicarConfig(r[2].value[0]);
-    if (ok(3)) aplicarOcupadas(r[3].value);
+    const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
+    if (!d) return;
+    if (Array.isArray(d.horario) && d.horario.length) { aplicarHorario(d.horario); horarioEnVivo = true; }
+    if (Array.isArray(d.cierres)) aplicarCierres(d.cierres);
+    if (d.config) aplicarConfig(d.config);
+    if (Array.isArray(d.ocupadas)) aplicarOcupadas(d.ocupadas);
     ultimaCarga = Date.now();
     refrescarDatos();
   };
@@ -1086,7 +1082,7 @@
   };
 
   /* ------------------------------------------------------------------------
-     Reserva en 4 pasos → guarda la cita en el panel (si hay Supabase) y abre WhatsApp
+     Reserva en 4 pasos → guarda la cita en el panel (si está conectado) y abre WhatsApp
      ------------------------------------------------------------------------ */
   const initReserva = () => {
     const cont = $('[data-reserva]');
@@ -1369,18 +1365,18 @@
       fecha_invalida: 'Esa fecha no está disponible. Elige otra.',
       servicio_no_disponible: 'Ese servicio no está disponible ese día. Elige otro día.',
     };
-    const guardarCita = () => api('rpc/crear_cita', {
+    const guardarCita = () => api('reservar', {
       metodo: 'POST',
       espera: 8000,
       cuerpo: {
-        p_servicio: st.servicio,
-        p_fecha: st.fecha,
-        p_hora: st.hora,
-        p_nombre: inNombre.value.trim(),
-        p_telefono: inTel.value.trim(),
-        p_sector: esDomicilio() ? inSector.value.trim() : '',
-        p_personas: esDomicilio() ? Number(inPersonas.value) || 1 : 1,
-        p_nota: inNota.value.trim(),
+        servicio: st.servicio,
+        fecha: st.fecha,
+        hora: st.hora,
+        nombre: inNombre.value.trim(),
+        telefono: inTel.value.trim(),
+        sector: esDomicilio() ? inSector.value.trim() : '',
+        personas: esDomicilio() ? Number(inPersonas.value) || 1 : 1,
+        nota: inNota.value.trim(),
       },
     });
 

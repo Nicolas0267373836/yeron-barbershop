@@ -1,13 +1,13 @@
 /* ----------------------------------------------------------------------------
-   Conexión con Supabase (panel de Yeron)
-   Déjalo vacío para que la web funcione sola, sin panel (reserva solo por WhatsApp).
+   Conexión con el panel de Yeron (funciones /api en Vercel + base de datos Neon)
 
-   supabaseUrl      → Supabase → Project Settings → API → Project URL
-   supabaseAnonKey  → la clave «anon» / «publishable». Es PÚBLICA por diseño: los
-                      permisos los fija la base de datos (RLS, ver supabase/schema.sql).
-   ¡NUNCA pegues aquí la clave «service_role» ni «secret»!
+   api: '/api'  → la web lee horario, días cerrados y avisos del panel, y guarda las citas.
+   api: ''      → la web funciona sola, sin panel (la reserva solo abre WhatsApp).
+
+   Aquí NO va ninguna clave: la conexión a Neon (DATABASE_URL) y el acceso de Yeron
+   se configuran como variables de entorno en Vercel (ver README, «Panel administrativo»).
+   Si la API no responde, la web sigue funcionando con los datos de script.js.
 ---------------------------------------------------------------------------- */
 window.YERON_CONFIG = {
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+  api: '/api',
 };

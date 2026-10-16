@@ -1,15 +1,14 @@
 /* ==========================================================================
    Panel de Yeron — citas, días cerrados y horario
-   Habla con Supabase por HTTPS. Solo usa la clave pública («anon»); lo que cada
-   quien puede ver o cambiar lo decide la base de datos (RLS, supabase/schema.sql).
+   Habla solo con /api/admin. La sesión es una cookie HttpOnly firmada por el servidor:
+   este archivo nunca ve la contraseña guardada ni la conexión a la base (Neon).
    ========================================================================== */
 (() => {
   'use strict';
 
   const CFG = window.YERON_CONFIG || {};
-  const BASE = String(CFG.supabaseUrl || '').replace(/\/$/, '');
-  const LLAVE = String(CFG.supabaseAnonKey || '');
-  const configurado = Boolean(BASE && LLAVE);
+  const BASE = String(CFG.api || '').replace(/\/$/, '');
+  const configurado = Boolean(BASE);
 
   /* ---------- Utilidades ---------- */
   const $ = (s, c = document) => c.querySelector(s);
@@ -57,60 +56,26 @@
   };
   const cargando = (btn, on) => { btn.classList.toggle('is-loading', on); btn.disabled = on; };
 
-  /* ---------- Sesión (Supabase Auth, por HTTPS) ---------- */
-  const CLAVE_SESION = 'yeron_admin_sesion';
-  let sesion = null;
-  try { sesion = JSON.parse(localStorage.getItem(CLAVE_SESION)); } catch (err) { sesion = null; }
-  const guardarSesion = (d) => {
-    sesion = {
-      access_token: d.access_token,
-      refresh_token: d.refresh_token,
-      expires_at: d.expires_at || Math.floor(Date.now() / 1000) + (d.expires_in || 3600),
-      usuario: d.user ? { id: d.user.id, email: d.user.email } : (sesion && sesion.usuario) || null,
-    };
-    try { localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion)); } catch (err) { /* sin almacenamiento: la sesión dura mientras no se recargue */ }
-  };
-  const olvidarSesion = () => { sesion = null; try { localStorage.removeItem(CLAVE_SESION); } catch (err) { /* nada */ } };
-
-  const authPost = (ruta, cuerpo, token) => fetch(`${BASE}/auth/v1/${ruta}`, {
-    method: 'POST',
-    headers: { apikey: LLAVE, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify(cuerpo || {}),
-  });
-
-  const refrescarSesion = async () => {
-    if (!sesion || !sesion.refresh_token) throw new Error('sin_sesion');
-    const r = await authPost('token?grant_type=refresh_token', { refresh_token: sesion.refresh_token });
-    if (!r.ok) { olvidarSesion(); throw new Error('sesion_vencida'); }
-    guardarSesion(await r.json());
-  };
-  const tokenValido = async () => {
-    if (!sesion) throw new Error('sin_sesion');
-    if (sesion.expires_at - Math.floor(Date.now() / 1000) < 60) await refrescarSesion();
-    return sesion.access_token;
-  };
-
+  /* ---------- API del panel (sesión en cookie HttpOnly) ---------- */
   class ErrorApi extends Error {
     constructor(status, datos) {
-      super((datos && datos.message) || `http_${status}`);
+      super((datos && datos.error) || `http_${status}`);
       this.status = status;
-      this.codigo = (datos && datos.code) || '';
+      this.codigo = (datos && datos.error) || '';
     }
   }
-  const rest = async (ruta, { metodo = 'GET', cuerpo, devolver = false, mezclar = false } = {}, reintento = true) => {
-    const token = await tokenValido();
-    const headers = { apikey: LLAVE, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-    const pref = [];
-    if (devolver) pref.push('return=representation');
-    if (mezclar) pref.push('resolution=merge-duplicates');
-    if (pref.length) headers.Prefer = pref.join(',');
-    const r = await fetch(`${BASE}/rest/v1/${ruta}`, { method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
-    if (r.status === 401 && reintento) { await refrescarSesion(); return rest(ruta, { metodo, cuerpo, devolver, mezclar }, false); }
+  const llamar = async (accion, datos = {}) => {
+    const r = await fetch(`${BASE}/admin`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Yeron': '1' },
+      body: JSON.stringify({ accion, ...datos }),
+    });
     const texto = await r.text();
-    let datos = null;
-    try { datos = texto ? JSON.parse(texto) : null; } catch (err) { datos = null; }
-    if (!r.ok) throw new ErrorApi(r.status, datos);
-    return datos;
+    let d = null;
+    try { d = texto ? JSON.parse(texto) : null; } catch (err) { d = null; }
+    if (!r.ok) throw new ErrorApi(r.status, d);
+    return d;
   };
 
   /* ---------- Estado ---------- */
@@ -118,26 +83,26 @@
 
   const mostrar = (vista) => {
     $$('[data-vista]').forEach((el) => { el.hidden = el.dataset.vista !== vista; });
-    $('[data-salir]').hidden = !(vista === 'panel' || vista === 'sin-acceso');
+    $('[data-salir]').hidden = vista !== 'panel';
     if (vista === 'login') $('#login-correo').focus();
   };
   const salir = async () => {
-    try { if (sesion) await authPost('logout', {}, sesion.access_token); } catch (err) { /* sin conexión: igual se cierra aquí */ }
-    olvidarSesion();
+    try { await llamar('logout'); } catch (err) { /* sin conexión: igual se cierra aquí */ }
     clearInterval(est.timer);
     mostrar('login');
   };
 
   /* ---------- Carga de datos ---------- */
   const cargarCitas = async () => {
-    const desde = claveDe(diaRD(-45));
-    est.citas = await rest(`citas?select=*&fecha=gte.${desde}&order=fecha.asc,hora.asc&limit=1000`);
+    const d = await llamar('citas', { desde: claveDe(diaRD(-45)), hoy: hoyClave() });
+    est.citas = d.citas;
+    est.cierres = d.cierres;
   };
-  const cargarCierres = async () => { est.cierres = await rest(`cierres?select=*&fecha=gte.${hoyClave()}&order=fecha.asc`); };
+  const cargarCierres = async () => { await cargarCitas(); };
   const cargarHorarioConfig = async () => {
-    const [h, c] = await Promise.all([rest('horario?select=*&order=dow'), rest('config?select=*&id=eq.1')]);
-    est.horario = h;
-    est.config = c[0] || { domicilio_desde: 1000, aviso: '', aviso_activo: false };
+    const d = await llamar('ajustes');
+    est.horario = d.horario;
+    est.config = d.config || { domicilio_desde: 1000, aviso: '', aviso_activo: false };
   };
 
   /* ---------- Citas ---------- */
@@ -211,14 +176,15 @@
 
   const actualizarCita = async (id, cambios, mensaje) => {
     try {
-      const r = await rest(`citas?id=eq.${encodeURIComponent(id)}`, { metodo: 'PATCH', cuerpo: cambios, devolver: true });
-      if (Array.isArray(r) && r[0]) est.citas = est.citas.map((c) => (c.id === id ? r[0] : c));
+      const r = await llamar('cita_actualizar', { id, ...cambios });
+      if (r && r.cita) est.citas = est.citas.map((c) => (c.id === id ? r.cita : c));
       est.citas.sort((a, b) => (a.fecha === b.fecha ? a.hora - b.hora : (a.fecha < b.fecha ? -1 : 1)));
       pintarCitas();
       if (mensaje) toast(mensaje);
       return true;
     } catch (err) {
-      toast(err.codigo === '23505' ? 'Esa hora ya está ocupada por otra cita.' : 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.', true);
+      if (err.status === 401) { sesionVencida(); return false; }
+      toast(err.codigo === 'hora_ocupada' ? 'Esa hora ya está ocupada por otra cita.' : 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.', true);
       return false;
     }
   };
@@ -322,7 +288,6 @@
 
     // Sesión
     $('[data-salir]').addEventListener('click', salir);
-    $('[data-salir-2]').addEventListener('click', salir);
     $('[data-form-login]').addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = e.currentTarget;
@@ -330,16 +295,17 @@
       const err = $('[data-login-error]');
       err.textContent = '';
       const correo = f.correo.value.trim();
-      if (!correo || !f.clave.value) { err.textContent = 'Escribe tu correo y tu contraseña.'; return; }
+      if (!correo || !f.clave.value) { err.textContent = 'Escribe tu usuario y tu contraseña.'; return; }
       cargando(btn, true);
       try {
-        const r = await authPost('token?grant_type=password', { email: correo, password: f.clave.value });
-        if (!r.ok) { err.textContent = r.status === 400 ? 'Correo o contraseña incorrectos.' : 'No se pudo iniciar sesión. Intenta de nuevo.'; return; }
-        guardarSesion(await r.json());
+        await llamar('login', { usuario: correo, clave: f.clave.value });
         f.clave.value = '';
         await entrar();
       } catch (er) {
-        err.textContent = 'No hay conexión. Revisa tu internet e intenta de nuevo.';
+        err.textContent = er.status === 401 ? 'Usuario o contraseña incorrectos.'
+          : er.status === 429 ? 'Demasiados intentos. Espera 15 minutos e intenta de nuevo.'
+            : er.status ? 'No se pudo iniciar sesión. Intenta de nuevo.'
+              : 'No hay conexión. Revisa tu internet e intenta de nuevo.';
       } finally { cargando(btn, false); }
     });
 
@@ -397,7 +363,7 @@
       cargando(btn, true);
       try {
         const motivo = f.motivo.value.trim();
-        await rest('cierres', { metodo: 'POST', cuerpo: { fecha, tipo: f.tipo.value, motivo }, mezclar: true });
+        await llamar('cierre_guardar', { fecha, tipo: f.tipo.value, motivo });
         await cargarCierres();
         pintarCierres();
         toast(`${cap(fechaLarga(fecha))} quedó cerrado en la web.`);
@@ -422,7 +388,7 @@
       }
       b.disabled = true;
       try {
-        await rest(`cierres?fecha=eq.${encodeURIComponent(b.dataset.reabrirDia)}`, { metodo: 'DELETE' });
+        await llamar('cierre_borrar', { fecha: b.dataset.reabrirDia });
         await cargarCierres();
         pintarCierres();
         toast('Día abierto otra vez.');
@@ -448,12 +414,12 @@
         const abre = Number($('[name="abre"]', fila).value);
         const cierra = Number($('[name="cierra"]', fila).value);
         if (conHoras && abre >= cierra) { err.textContent = `${cap(DIAS[dow])}: la hora de cierre debe ser después de la de apertura.`; return; }
-        cambios.push({ dow, cuerpo: conHoras ? { modo, abre, cierra } : { modo, abre: null, cierra: null } });
+        cambios.push(conHoras ? { dow, modo, abre, cierra } : { dow, modo });
       }
       const btn = $('[data-horario-btn]');
       cargando(btn, true);
       try {
-        await Promise.all(cambios.map((c) => rest(`horario?dow=eq.${c.dow}`, { metodo: 'PATCH', cuerpo: c.cuerpo })));
+        await llamar('horario_guardar', { dias: cambios });
         await cargarHorarioConfig();
         pintarHorario();
         toast('Horario guardado. Ya se ve en la web.');
@@ -468,7 +434,7 @@
       const btn = $('[data-tarifa-btn]');
       cargando(btn, true);
       try {
-        await rest('config?id=eq.1', { metodo: 'PATCH', cuerpo: { domicilio_desde: valor } });
+        await llamar('config_guardar', { domicilio_desde: valor });
         est.config.domicilio_desde = valor;
         toast('Tarifa guardada. Ya se ve en la web.');
       } catch (er) { err.textContent = 'No se pudo guardar la tarifa. Intenta de nuevo.'; } finally { cargando(btn, false); }
@@ -483,7 +449,7 @@
       const btn = $('[data-aviso-btn]');
       cargando(btn, true);
       try {
-        await rest('config?id=eq.1', { metodo: 'PATCH', cuerpo: { aviso: texto, aviso_activo: f.activo.checked } });
+        await llamar('config_guardar', { aviso: texto, aviso_activo: f.activo.checked });
         est.config.aviso = texto; est.config.aviso_activo = f.activo.checked;
         toast(f.activo.checked ? 'Aviso publicado en la web.' : 'Aviso guardado (oculto).');
       } catch (er) { err.textContent = 'No se pudo guardar el aviso. Intenta de nuevo.'; } finally { cargando(btn, false); }
@@ -505,16 +471,14 @@
       $('[data-ultima]').textContent = `Actualizado a las ${pad(d.getHours())}:${pad(d.getMinutes())}. Se refresca solo cada minuto.`;
       if (avisar) toast('Citas actualizadas.');
     } catch (err) {
-      if (['sin_sesion', 'sesion_vencida'].includes(err.message) || err.status === 401) { olvidarSesion(); mostrar('login'); toast('Tu sesión venció. Entra de nuevo.', true); return; }
+      if (err.status === 401) { sesionVencida(); return; }
       toast('No se pudo actualizar. Revisa tu conexión.', true);
     }
   };
 
+  const sesionVencida = () => { clearInterval(est.timer); mostrar('login'); toast('Tu sesión venció. Entra de nuevo.', true); };
+
   const entrar = async () => {
-    const id = sesion && sesion.usuario && sesion.usuario.id;
-    let admin = false;
-    try { admin = Boolean(id) && (await rest(`admins?select=user_id&user_id=eq.${encodeURIComponent(id)}`)).length > 0; } catch (err) { admin = false; }
-    if (!admin) { mostrar('sin-acceso'); return; }
     mostrar('panel');
     await Promise.all([recargar(false), cargarHorarioConfig().then(pintarHorario).catch(() => toast('No se pudo cargar el horario.', true))]);
     if (est.primeraCarga) { est.primeraCarga = false; if (pendientes().length) { est.filtro = 'pendientes'; pintarCitas(); } }
@@ -524,6 +488,7 @@
 
   iniciarEventos();
   if (!configurado) mostrar('sin-config');
-  else if (sesion && sesion.refresh_token) entrar();
-  else mostrar('login');
+  else {
+    llamar('sesion').then(() => entrar()).catch(() => mostrar('login'));
+  }
 })();

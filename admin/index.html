@@ -34,7 +34,7 @@
   <!-- Sin conexión configurada -->
   <section class="tarjeta" data-vista="sin-config" hidden>
     <h1 class="titulo">Falta conectar la base de datos</h1>
-    <p>Este panel necesita Supabase. Completa <code>supabaseUrl</code> y <code>supabaseAnonKey</code> en el archivo <code>config.js</code> (guía en el README, sección «Panel administrativo»).</p>
+    <p>En <code>config.js</code> la opción <code>api</code> está vacía. Ponla en <code>'/api'</code> y configura Neon y las variables de entorno en Vercel (guía en el README, sección «Panel administrativo»).</p>
   </section>
 
   <!-- Inicio de sesión -->
@@ -43,8 +43,8 @@
     <p class="suave">Solo para Yeron. Las citas guardan nombre y WhatsApp de tus clientes.</p>
     <form data-form-login novalidate>
       <div class="campo">
-        <label for="login-correo">Correo</label>
-        <input id="login-correo" name="correo" type="email" autocomplete="username" inputmode="email" required>
+        <label for="login-correo">Usuario</label>
+        <input id="login-correo" name="correo" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
       </div>
       <div class="campo">
         <label for="login-clave">Contraseña</label>
@@ -53,13 +53,6 @@
       <p class="error" data-login-error role="alert"></p>
       <button class="btn btn--principal btn--ancho" type="submit" data-login-btn><span class="btn__texto">Entrar</span></button>
     </form>
-  </section>
-
-  <!-- Sin permiso -->
-  <section class="tarjeta" data-vista="sin-acceso" hidden>
-    <h1 class="titulo">Esta cuenta no tiene acceso</h1>
-    <p>Iniciaste sesión, pero tu usuario no está registrado como administrador. Pídele a WebDom que lo agregue y vuelve a entrar.</p>
-    <button class="btn btn--linea" type="button" data-salir-2>Salir</button>
   </section>
 
   <!-- Panel -->

@@ -1,0 +1,14 @@
+{
+  "name": "yeron-barbershop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sitio de Yeron Barbershop: HTML estático + funciones /api con Neon (Postgres)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "clave": "node scripts/hash-password.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  }
+}
