@@ -3,7 +3,7 @@
 Sitio de una página para **Yeron Barbershop** (Instagram [@yeron_barber](https://www.instagram.com/yeron_barber/)): barbería dominicana que atiende de lunes a viernes y trabaja 100 % a domicilio los miércoles.
 
 - Proyecto WebDom nuevo e independiente: no pertenece a `webdom-site`, `webdom-citas`, Martis, Integraxis ni Abud & Martínez.
-- Estado: **prototipo de alta fidelidad para revisión con el cliente**. Sin repositorio, sin dominio y sin deploy. Las reservas no envían datos: la página arma el mensaje y abre WhatsApp.
+- Estado verificado el **19-oct-2026**: repositorio `Nicolas0267373836/yeron-barbershop`, rama `main`, publicado en https://www.yeronbarbershop.site y https://yeron-barbershop.vercel.app. Neon `yeron-barbershop-db` está conectado a Production y Preview; `/api/publico` responde 200. Falta configurar las credenciales administrativas. El dominio raíz requiere eliminar en Namecheap el registro conflictivo `A @ → 76.76.19.89`, conservando `A @ → 216.198.79.1`.
 - Inspiración: estructura y lenguaje de la plantilla **Beard X** (beardtemplate.webflow.io): hero oscuro con título en mayúsculas muy pesadas, fondos claros alternos, divisor con ícono sobre cada título, panel de servicios con precio, galería asimétrica, banda de Instagram y botones de esquinas rectas. No se copiaron textos, fotos, marca ni diseño exacto.
 - Identidad propia: el **poste de barbería** del logo (rojo, blanco y azul, que además son los colores de la bandera dominicana) y una tipografía de **camiseta de béisbol** (bloque condensado + script con cola), a partir del lema «Flow de la mata! 🇩🇴⚾️🔥».
 
@@ -164,7 +164,7 @@ Con `prefers-reduced-motion: reduce` se desactivan parallax, flotación, cinta, 
 
 ## Reserva por WhatsApp
 
-La reserva no guarda ni envía datos. Al final abre `wa.me/18293374594` con un mensaje como este:
+Con `api: '/api'`, la reserva registra la solicitud y los datos de contacto en Neon y después abre `wa.me/18293374594`. Con `api: ''`, funciona solo por WhatsApp. El mensaje tiene este formato:
 
 ```
 Hola, Yeron. Quiero reservar un turno desde tu página web.
