@@ -135,7 +135,7 @@
         <span class="estado estado--${esc(c.estado)}">${esc(ESTADOS[c.estado] || c.estado)}</span>
       </header>
       <h3 class="cita__nombre">${esc(c.nombre)}</h3>
-      <p class="cita__detalle">${esc(SERVICIOS[c.servicio] || c.servicio)} · ${esc(lugarTexto(c))}</p>
+      <p class="cita__detalle">${esc(String(c.servicio).split(',').map((id) => SERVICIOS[id] || id).join(' + '))} · ${esc(lugarTexto(c))}</p>
       ${c.nota ? `<p class="cita__nota">«${esc(c.nota)}»</p>` : ''}
       <p class="cita__contacto"><a href="tel:+${esc(waNumero(c.telefono))}">${esc(c.telefono)}</a> · <a href="${esc(waEnlace(c.telefono, mensajeWa(c)))}" target="_blank" rel="noopener">Escribir por WhatsApp</a></p>
       <div class="cita__acciones">${accionesDe(c)}</div>

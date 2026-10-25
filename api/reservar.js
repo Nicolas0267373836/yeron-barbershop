@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     if (Math.random() < 0.02) limpiarIntentos(consulta).catch(() => {});
     const [r] = await consulta(
       'select crear_cita($1, $2::date, $3::int, $4, $5, $6, $7::int, $8) as id',
-      [texto(b.servicio, 30), texto(b.fecha, 10), Number.isInteger(b.hora) ? b.hora : -1, texto(b.nombre, 120), texto(b.telefono, 40),
+      [texto(b.servicio, 150), texto(b.fecha, 10), Number.isInteger(b.hora) ? b.hora : -1, texto(b.nombre, 120), texto(b.telefono, 40),
         texto(b.sector, 200), Number.isInteger(b.personas) ? b.personas : 1, texto(b.nota, 400)],
     );
     return responder(res, 200, { id: r.id });

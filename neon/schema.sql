@@ -58,7 +58,7 @@ insert into config (id) values (1) on conflict (id) do nothing;
 create table if not exists citas (
   id        uuid primary key default gen_random_uuid(),
   creado    timestamptz not null default now(),
-  servicio  text not null check (servicio in ('lavado', 'corte-adulto', 'corte-barba', 'cejas', 'corte-ninos', 'tintado-cejas', 'rayas', 'faciales', 'domicilio')),
+  servicio  text not null,   -- uno o varios servicios separados por coma, p. ej. 'corte-adulto,cejas'
   fecha     date not null,
   hora      smallint not null check (hora between 0 and 23),
   lugar     text not null check (lugar in ('barberia', 'domicilio')),
@@ -74,6 +74,7 @@ create table if not exists citas (
 -- Una sola cita activa por día y hora (Yeron atiende a una persona a la vez).
 create unique index if not exists citas_hora_unica
   on citas (fecha, hora) where estado in ('pendiente', 'confirmada');
+alter table citas drop constraint if exists citas_servicio_check;
 create index if not exists citas_fecha_idx on citas (fecha, hora);
 
 
@@ -114,8 +115,13 @@ declare
   v_digitos text := regexp_replace(coalesce(p_telefono, ''), '\D', '', 'g');
   v_sector text := btrim(coalesce(p_sector, ''));
   v_id     uuid;
+  v_servicios text[];
 begin
-  if p_servicio is null or p_servicio not in ('lavado', 'corte-adulto', 'corte-barba', 'cejas', 'corte-ninos', 'tintado-cejas', 'rayas', 'faciales', 'domicilio') then
+  -- Uno o varios servicios (separados por coma), sin repetir y todos válidos.
+  select array_agg(q.s order by q.o) into v_servicios from (
+    select btrim(x) as s, min(o) as o from unnest(string_to_array(coalesce(p_servicio, ''), ',')) with ordinality as t(x, o) group by btrim(x)
+  ) q;
+  if v_servicios is null or cardinality(v_servicios) > 9 or not (v_servicios <@ array['lavado', 'corte-adulto', 'corte-barba', 'cejas', 'corte-ninos', 'tintado-cejas', 'rayas', 'faciales', 'domicilio']) then
     raise exception 'servicio_invalido';
   end if;
   if char_length(v_nombre) < 2 or char_length(v_nombre) > 80 then raise exception 'nombre_invalido'; end if;
@@ -128,7 +134,7 @@ begin
   if p_hora is null or p_hora < v_h.abre or p_hora >= v_h.cierra then raise exception 'hora_invalida'; end if;
   if p_fecha = v_hoy and p_hora < extract(hour from v_local)::int + 1 then raise exception 'hora_pasada'; end if;
 
-  if p_servicio = 'domicilio' and v_h.modo <> 'domicilio' then raise exception 'servicio_no_disponible'; end if;
+  if 'domicilio' = any(v_servicios) and v_h.modo <> 'domicilio' then raise exception 'servicio_no_disponible'; end if;
   if v_h.modo = 'domicilio' and char_length(v_sector) < 3 then raise exception 'sector_requerido'; end if;
 
   -- Freno a abusos: máximo 3 citas activas por número de WhatsApp.
@@ -141,7 +147,7 @@ begin
   begin
     insert into citas (servicio, fecha, hora, lugar, nombre, telefono, sector, personas, nota)
     values (
-      p_servicio, p_fecha, p_hora, v_h.modo, left(v_nombre, 80), left(v_tel, 30),
+      array_to_string(v_servicios, ','), p_fecha, p_hora, v_h.modo, left(v_nombre, 80), left(v_tel, 30),
       case when v_h.modo = 'domicilio' then left(v_sector, 120) else '' end,
       least(greatest(coalesce(p_personas, 1), 1), 10),
       left(btrim(coalesce(p_nota, '')), 300)

@@ -1108,12 +1108,12 @@
     const inPersonas = $('#res-personas', form);
     const inNota = $('#res-nota', form);
     const NOMBRES = ['Servicio', 'Día y hora', 'Tus datos', 'Confirmar'];
-    const st = { paso: 1, servicio: null, fecha: null, dow: null, hora: null };
+    const st = { paso: 1, servicios: [], fecha: null, dow: null, hora: null };
     let ultimoMensaje = '';
 
     opciones.innerHTML = SERVICIOS.map((s) => `
       <div class="opcion-servicio">
-        <input type="radio" name="servicio" id="srv-${s.id}" value="${s.id}">
+        <input type="checkbox" name="servicio" id="srv-${s.id}" value="${s.id}">
         <label for="srv-${s.id}">
           <span class="opcion-servicio__icono">${icono(s.icono)}</span>
           <span><span class="opcion-servicio__nombre">${esc(s.nombre)}</span><span class="opcion-servicio__precio"${s.id === 'domicilio' ? ' data-precio-domicilio-desde' : ''}>${s.precio ? esc(s.precio) : 'Precio: consultar'}</span></span>
@@ -1121,8 +1121,10 @@
         </label>
       </div>`).join('');
 
-    const esDomicilio = () => st.servicio === 'domicilio' || esDiaDomicilio(st.dow);
-    const servicio = () => SERVICIOS.find((s) => s.id === st.servicio);
+    const tiene = (id) => st.servicios.includes(id);
+    const esDomicilio = () => tiene('domicilio') || esDiaDomicilio(st.dow);
+    const elegidos = () => SERVICIOS.filter((s) => tiene(s.id));          // en el orden del menú
+    const nombresServicios = () => elegidos().map((s) => s.nombre).join(' + ');
     const fechaSel = () => {
       const [y, m, d] = st.fecha.split('-').map(Number);
       return new Date(Date.UTC(y, m - 1, d));
@@ -1165,7 +1167,7 @@
         else if (h.modo === 'cerrado') { deshabilitado = true; etiqueta = 'Cerrado'; }
         else {
           if (h.modo === 'domicilio') etiqueta = 'Domicilio';
-          if (st.servicio === 'domicilio' && h.modo !== 'domicilio') { deshabilitado = true; etiqueta = 'Solo mié.'; }
+          if (tiene('domicilio') && h.modo !== 'domicilio') { deshabilitado = true; etiqueta = 'Solo mié.'; }
           if (k === 0 && ahora.h + 1 >= h.cierra) { deshabilitado = true; etiqueta = 'Cerrado'; }
         }
         if (!etiqueta && k === 0) etiqueta = 'Hoy';
@@ -1176,7 +1178,7 @@
       }
       diasEl.innerHTML = html.join('');
       if (st.fecha && !$(`input[value="${st.fecha}"]:checked`, diasEl)) { st.fecha = null; st.dow = null; st.hora = null; }
-      avisoMie.hidden = !(esDiaDomicilio(st.dow) && st.servicio !== 'domicilio');
+      avisoMie.hidden = !(esDiaDomicilio(st.dow) && !tiene('domicilio'));
       const cierres = cierresProximos(14);
       if (notaCierres) {
         notaCierres.hidden = cierres.length === 0;
@@ -1186,11 +1188,10 @@
     };
 
     const construirMensaje = () => {
-      const s = servicio();
       const dom = esDomicilio();
       const lineas = [
         'Hola, Yeron. Quiero reservar un turno desde tu página web.',
-        `• Servicio: ${s ? s.nombre : ''}`,
+        `• ${st.servicios.length > 1 ? 'Servicios' : 'Servicio'}: ${nombresServicios()}`,
         `• Día: ${st.fecha ? fechaLarga(fechaSel()) : ''}`,
         `• Hora: ${st.hora !== null ? formatoHora(st.hora, true) : ''}`,
         `• Lugar: ${dom ? 'a domicilio' : 'en la barbería'}`,
@@ -1206,11 +1207,10 @@
     };
 
     const renderResumen = () => {
-      const s = servicio();
       const dom = esDomicilio();
       const personas = inPersonas.value;
       const filas = [
-        ['Servicio', s.nombre, 1],
+        [st.servicios.length > 1 ? 'Servicios' : 'Servicio', nombresServicios(), 1],
         ['Día', cap(fechaLarga(fechaSel())), 2],
         ['Hora', formatoHora(st.hora), 2],
         ['Lugar', dom ? `A domicilio · ${inSector.value.trim()} · ${personas} ${personas === '1' ? 'persona' : 'personas'}` : 'En la barbería', dom ? 3 : 2],
@@ -1241,7 +1241,7 @@
 
     const validar = (n) => {
       if (n === 1) {
-        if (!st.servicio) { errorPaso(1, 'Elige un servicio para continuar.'); vibrar(opciones); return false; }
+        if (!st.servicios.length) { errorPaso(1, 'Elige al menos un servicio para continuar.'); vibrar(opciones); return false; }
         errorPaso(1, '');
         return true;
       }
@@ -1303,16 +1303,17 @@
 
     opciones.addEventListener('change', (e) => {
       if (e.target.name !== 'servicio') return;
-      st.servicio = e.target.value;
+      st.servicios = $$('input[name="servicio"]:checked', opciones).map((i) => i.value);
       errorPaso(1, '');
-      if (st.servicio === 'domicilio' && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
+      avisoMie.hidden = !(esDiaDomicilio(st.dow) && !tiene('domicilio'));
+      if (tiene('domicilio') && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
     });
     diasEl.addEventListener('change', (e) => {
       if (e.target.name !== 'dia') return;
       st.fecha = e.target.value;
       st.dow = Number(e.target.dataset.dow);
       st.hora = null;
-      avisoMie.hidden = !(esDiaDomicilio(st.dow) && st.servicio !== 'domicilio');
+      avisoMie.hidden = !(esDiaDomicilio(st.dow) && !tiene('domicilio'));
       errorPaso(2, '');
       renderHoras();
     });
@@ -1369,7 +1370,7 @@
       metodo: 'POST',
       espera: 8000,
       cuerpo: {
-        servicio: st.servicio,
+        servicio: st.servicios.join(','),
         fecha: st.fecha,
         hora: st.hora,
         nombre: inNombre.value.trim(),
@@ -1417,7 +1418,7 @@
 
     const reiniciar = () => {
       form.reset();
-      st.servicio = null; st.fecha = null; st.dow = null; st.hora = null;
+      st.servicios = []; st.fecha = null; st.dow = null; st.hora = null;
       $$('.campo', form).forEach((c) => limpiarError(c));
       errorPaso(1, ''); errorPaso(2, '');
       exito.hidden = true;
@@ -1440,8 +1441,9 @@
         if (!exito.hidden) reiniciar();
         const radio = $(`#srv-${id}`, form);
         if (!radio) return;
+        $$('input[name="servicio"]', form).forEach((i) => { i.checked = false; });
         radio.checked = true;
-        st.servicio = id;
+        st.servicios = [id];
         errorPaso(1, '');
         if (id === 'domicilio' && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
         irA(2, 1);
