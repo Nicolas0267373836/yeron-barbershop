@@ -1125,6 +1125,34 @@
     const esDomicilio = () => tiene('domicilio') || esDiaDomicilio(st.dow);
     const elegidos = () => SERVICIOS.filter((s) => tiene(s.id));          // en el orden del menú
     const nombresServicios = () => elegidos().map((s) => s.nombre).join(' + ');
+    // Precio estimado: suma los servicios con precio fijo; el traslado a domicilio y las rayas son «desde» / «adicional».
+    const aMonto = (txt) => { const m = /(\d[\d,.]*)/.exec(String(txt || '')); return m ? Number(m[1].replace(/[,.]/g, '')) : 0; };
+    const calcularPrecio = () => {
+      let base = 0; let adicional = false;
+      elegidos().forEach((s) => {
+        if (s.id === 'domicilio') return;
+        if (/^\s*RD\$\s*\d/.test(s.precio || '')) base += aMonto(s.precio); else adicional = true;
+      });
+      const dom = esDomicilio();
+      const traslado = dom ? aMonto(NEGOCIO.domicilioDesde) : 0;
+      const total = base + traslado;
+      const fmt = (n) => `RD$${miles(n)}`;
+      let texto = fmt(total);
+      if (dom) texto = `Desde ${fmt(total)}`;
+      const extras = [dom ? 'costo según la distancia' : '', adicional ? 'costo adicional de rayas' : ''].filter(Boolean);
+      if (extras.length) texto += ` + ${extras.join(' y ')}`;
+      const detalle = dom && base ? `Servicios ${fmt(base)} + traslado ${fmt(traslado)}` : (dom ? `Traslado ${fmt(traslado)}` : '');
+      return { total, texto, detalle, hay: st.servicios.length > 0 };
+    };
+    const pintarTotal = () => {
+      const el = $('[data-total]', form);
+      if (!el) return;
+      const p = calcularPrecio();
+      el.hidden = !p.hay;
+      if (!p.hay) return;
+      $('[data-total-valor]', el).textContent = p.texto;
+      $('[data-total-detalle]', el).textContent = p.detalle;
+    };
     const fechaSel = () => {
       const [y, m, d] = st.fecha.split('-').map(Number);
       return new Date(Date.UTC(y, m - 1, d));
@@ -1202,6 +1230,7 @@
       }
       lineas.push(`• Nombre: ${inNombre.value.trim()}`, `• Mi WhatsApp: ${inTel.value.trim()}`);
       if (inNota.value.trim()) lineas.push(`• Nota: ${inNota.value.trim()}`);
+      lineas.push(`• Total estimado: ${calcularPrecio().texto}`);
       if (dom) lineas.push('', `Sé que el domicilio arranca en ${NEGOCIO.domicilioDesde} y el precio final depende de la distancia.`);
       return lineas.join('\n');
     };
@@ -1218,7 +1247,7 @@
         ['WhatsApp', inTel.value.trim(), 3],
       ];
       if (inNota.value.trim()) filas.push(['Nota', inNota.value.trim(), 3]);
-      filas.push(['Precio', dom ? `Desde ${NEGOCIO.domicilioDesde} + distancia` : 'Te lo confirma Yeron', 0]);
+      filas.push(['Total estimado', calcularPrecio().texto, 1]);
       $('[data-resumen]', form).innerHTML = filas.map(([k, v, p]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd>${p ? `<button type="button" data-ir="${p}">Cambiar<span class="sr"> ${k.toLowerCase()}</span></button>` : '<span></span>'}</div>`).join('');
       ultimoMensaje = construirMensaje();
       $('[data-reserva-mensaje]', form).textContent = ultimoMensaje;
@@ -1306,6 +1335,7 @@
       st.servicios = $$('input[name="servicio"]:checked', opciones).map((i) => i.value);
       errorPaso(1, '');
       avisoMie.hidden = !(esDiaDomicilio(st.dow) && !tiene('domicilio'));
+      pintarTotal();
       if (tiene('domicilio') && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
     });
     diasEl.addEventListener('change', (e) => {
@@ -1418,7 +1448,7 @@
 
     const reiniciar = () => {
       form.reset();
-      st.servicios = []; st.fecha = null; st.dow = null; st.hora = null;
+      st.servicios = []; pintarTotal(); st.fecha = null; st.dow = null; st.hora = null;
       $$('.campo', form).forEach((c) => limpiarError(c));
       errorPaso(1, ''); errorPaso(2, '');
       exito.hidden = true;
@@ -1444,6 +1474,7 @@
         $$('input[name="servicio"]', form).forEach((i) => { i.checked = false; });
         radio.checked = true;
         st.servicios = [id];
+        pintarTotal();
         errorPaso(1, '');
         if (id === 'domicilio' && st.dow !== null && !esDiaDomicilio(st.dow)) { st.fecha = null; st.dow = null; st.hora = null; }
         irA(2, 1);

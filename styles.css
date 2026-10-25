@@ -874,6 +874,12 @@ html:not(.js) .filtros { display: none; }
 .paso__titulo { float: left; width: 100%; margin-bottom: 20px; padding: 0; font-family: var(--f-display); font-weight: 900; font-stretch: 80%; font-size: clamp(1.6rem, 1.3rem + 1vw, 2.1rem); line-height: 1; text-transform: uppercase; }
 .paso__titulo:focus { outline: none; }
 .paso__titulo + * { clear: both; }
+.reserva__total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 16px; padding: 14px 16px; border-radius: var(--r-2); background: var(--noche); color: #fff; }
+.reserva__total[hidden] { display: none; }
+.reserva__total-etiqueta { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.reserva__total strong { font-family: var(--f-display); font-size: 1.5rem; line-height: 1.1; }
+.reserva__total-detalle { flex-basis: 100%; font-size: .85rem; opacity: .8; }
+.reserva__total-detalle:empty { display: none; }
 .paso__ayuda { margin: -8px 0 16px; color: var(--pizarra); font-size: .92rem; }
 .paso__ayuda { margin-bottom: 14px; color: var(--pizarra); font-size: .9rem; }
 
