@@ -84,7 +84,7 @@ Las fotos vienen de Instagram (máx. 1024 px). Se optimizaron a WebP sin cambiar
 ## Pendiente de confirmar con Yeron
 
 - Si la avenida es «Enríquez» o «Henríquez» (ciudad y referencia ya confirmadas: San Pedro de Macorís, al lado de Plaza Jorge).
-- Pin o enlace de Google Maps (hoy el botón pide la ubicación por WhatsApp).
+- Google Maps confirmado por el usuario: https://maps.app.goo.gl/sYvuNaGeNkTTDUBr9?g_st=iw (FAQ, Visítanos, botón de cómo llegar y dirección del pie de página).
 - Hora del domicilio de los miércoles (la reserva ofrece de 8:00 a. m. a 8:00 p. m.).
 - Monto exacto de **servicios de faciales**: en la foto del menú un reflejo tapa el número (se leyó RD$600). Servicios y precios tomados del menú impreso; no hay fotos propias de lavado, cejas, niños ni faciales.
 - Cómo se cotiza la distancia del domicilio.
