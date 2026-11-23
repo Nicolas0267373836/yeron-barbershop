@@ -58,7 +58,7 @@ Enlaces directos a cada servicio: `index.html#servicio-lavado`, `#servicio-corte
 |---|---|
 | Perfil @yeron_barber, lema «Flow de la mata! 🇩🇴⚾️🔥», rubro barbería | Instagram (revisión del usuario, sept. 2026) |
 | Horario lunes a viernes, 8:00 a. m.–9:00 p. m. | Instagram |
-| WhatsApp +1 829-337-4594 | Instagram |
+| WhatsApp +1 829-682-1198 | Confirmado por el usuario |
 | «Av. Presidente Enríquez, al lado de Plaza Jorge», San Pedro de Macorís | Instagram y usuario (8-oct-2026: ciudad y referencia confirmadas). **Falta confirmar la ortografía de la avenida** |
 | 350 publicaciones y 2,707 seguidores | Instagram al momento de la revisión. En la página: «350+» y «2,700+» |
 | Miércoles 100 % a domicilio, RD$1,000, el precio se cotiza según la distancia | Publicación de Instagram indicada por el usuario |
@@ -95,7 +95,6 @@ Las fotos vienen de Instagram (máx. 1024 px). Se optimizaron a WebP sin cambiar
 - Permiso de los clientes que aparecen en la galería.
 - Historia de Yeron (opcional): desde cuándo corta, dónde empezó.
 - Métodos de pago y si atiende sin cita.
-- Que el WhatsApp +1 829-337-4594 recibe reservas y cotizaciones.
 - Fotos originales en mejor resolución.
 - Testimonios reales con autorización (no se agregaron reseñas).
 - Dominio y publicación.
@@ -164,7 +163,7 @@ Con `prefers-reduced-motion: reduce` se desactivan parallax, flotación, cinta, 
 
 ## Reserva por WhatsApp
 
-Con `api: '/api'`, la reserva registra la solicitud y los datos de contacto en Neon y después abre `wa.me/18293374594`. Con `api: ''`, funciona solo por WhatsApp. El mensaje tiene este formato:
+Con `api: '/api'`, la reserva registra la solicitud y los datos de contacto en Neon y después abre el WhatsApp del barbero elegido (`wa.me/18296821198` o `wa.me/18099691607`). Con `api: ''`, funciona solo por WhatsApp. El mensaje tiene este formato:
 
 ```
 Hola, Yeron. Quiero reservar un turno desde tu página web.

@@ -72,8 +72,9 @@ create table if not exists citas (
 );
 
 -- Una sola cita activa por día y hora (Yeron atiende a una persona a la vez).
-create unique index if not exists citas_hora_unica
-  on citas (fecha, hora) where estado in ('pendiente', 'confirmada');
+alter table citas add column if not exists barbero text not null default 'yeron' check (barbero in ('yeron', 'emilio'));
+create unique index if not exists citas_barbero_hora_unica on citas (barbero, fecha, hora) where estado in ('pendiente', 'confirmada');
+drop index if exists citas_hora_unica;
 alter table citas drop constraint if exists citas_servicio_check;
 create index if not exists citas_fecha_idx on citas (fecha, hora);
 
@@ -99,9 +100,10 @@ create or replace function crear_cita(
   p_hora     integer,
   p_nombre   text,
   p_telefono text,
-  p_sector   text default '',
-  p_personas integer default 1,
-  p_nota     text default ''
+  p_sector   text,
+  p_personas integer,
+  p_nota     text,
+  p_barbero  text
 )
 returns uuid
 language plpgsql
@@ -117,6 +119,7 @@ declare
   v_id     uuid;
   v_servicios text[];
 begin
+  if p_barbero is null or p_barbero not in ('yeron', 'emilio') then raise exception 'barbero_invalido'; end if;
   -- Uno o varios servicios (separados por coma), sin repetir y todos válidos.
   select array_agg(q.s order by q.o) into v_servicios from (
     select btrim(x) as s, min(o) as o from unnest(string_to_array(coalesce(p_servicio, ''), ',')) with ordinality as t(x, o) group by btrim(x)
@@ -145,9 +148,9 @@ begin
   end if;
 
   begin
-    insert into citas (servicio, fecha, hora, lugar, nombre, telefono, sector, personas, nota)
+    insert into citas (barbero, servicio, fecha, hora, lugar, nombre, telefono, sector, personas, nota)
     values (
-      array_to_string(v_servicios, ','), p_fecha, p_hora, v_h.modo, left(v_nombre, 80), left(v_tel, 30),
+      p_barbero, array_to_string(v_servicios, ','), p_fecha, p_hora, v_h.modo, left(v_nombre, 80), left(v_tel, 30),
       case when v_h.modo = 'domicilio' then left(v_sector, 120) else '' end,
       least(greatest(coalesce(p_personas, 1), 1), 10),
       left(btrim(coalesce(p_nota, '')), 300)

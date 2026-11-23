@@ -112,13 +112,15 @@
     ? `A domicilio · ${c.sector || 'sin sector'} · ${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}`
     : 'En la barbería');
 
+  const nombreBarbero = (c) => c.barbero === 'emilio' ? 'Emilio' : 'Yeron';
+
   const mensajeWa = (c) => {
     const cuando = `${fechaLarga(c.fecha)} a las ${hora12(c.hora)}`;
     const nombre = c.nombre.split(' ')[0];
     if (c.estado === 'confirmada') return `Hola ${nombre}, tu cita quedó confirmada: ${cuando}${c.lugar === 'domicilio' ? ' (a domicilio)' : ''}. ¡Te espero!`;
     if (c.estado === 'cancelada') return `Hola ${nombre}, tuve que cancelar tu cita del ${cuando}. ¿La reprogramamos?`;
     if (c.estado === 'completada') return `Hola ${nombre}, gracias por venir. ¡Flow de la mata!`;
-    return `Hola ${nombre}, soy Yeron. Recibí tu solicitud de cita para el ${cuando}.`;
+    return `Hola ${nombre}, soy ${nombreBarbero(c)}. Recibí tu solicitud de cita para el ${cuando}.`;
   };
 
   const accionesDe = (c) => {
@@ -135,7 +137,7 @@
         <span class="estado estado--${esc(c.estado)}">${esc(ESTADOS[c.estado] || c.estado)}</span>
       </header>
       <h3 class="cita__nombre">${esc(c.nombre)}</h3>
-      <p class="cita__detalle">${esc(String(c.servicio).split(',').map((id) => SERVICIOS[id] || id).join(' + '))} · ${esc(lugarTexto(c))}</p>
+      <p class="cita__detalle">${esc(String(c.servicio).split(',').map((id) => SERVICIOS[id] || id).join(' + '))} · ${esc(lugarTexto(c))} · con ${nombreBarbero(c)}</p>
       ${c.nota ? `<p class="cita__nota">«${esc(c.nota)}»</p>` : ''}
       <p class="cita__contacto"><a href="tel:+${esc(waNumero(c.telefono))}">${esc(c.telefono)}</a> · <a href="${esc(waEnlace(c.telefono, mensajeWa(c)))}" target="_blank" rel="noopener">Escribir por WhatsApp</a></p>
       <div class="cita__acciones">${accionesDe(c)}</div>
@@ -198,7 +200,7 @@
     if (est.cierres.some((x) => x.fecha === clave)) return { error: 'Ese día está cerrado.' };
     if (!h || !['barberia', 'domicilio'].includes(h.modo)) return { error: 'Ese día no hay servicio.' };
     if (h.modo !== cita.lugar) return { error: h.modo === 'domicilio' ? 'Ese día es solo a domicilio.' : 'Esa cita es a domicilio y ese día no hay domicilios.' };
-    const ocupadas = new Set(est.citas.filter((c) => ACTIVAS.includes(c.estado) && c.fecha === clave && c.id !== cita.id).map((c) => c.hora));
+    const ocupadas = new Set(est.citas.filter((c) => ACTIVAS.includes(c.estado) && c.fecha === clave && nombreBarbero(c) === nombreBarbero(cita) && c.id !== cita.id).map((c) => c.hora));
     const ahora = ahoraRD();
     const horas = [];
     for (let x = h.abre; x < h.cierra; x += 1) {

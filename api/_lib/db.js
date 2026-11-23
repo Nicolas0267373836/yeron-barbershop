@@ -25,7 +25,9 @@ async function ejecutar(texto, params = []) {
 const ESTA_LISTA = `select (to_regclass('public.horario') is not null
   and to_regclass('public.cierres') is not null and to_regclass('public.config') is not null
   and to_regclass('public.citas') is not null and to_regclass('public.intentos') is not null
-  and to_regprocedure('crear_cita(text,date,integer,text,text,text,integer,text)') is not null) as ok`;
+  and to_regclass('public.citas_barbero_hora_unica') is not null
+  and to_regclass('public.citas_hora_unica') is null
+  and to_regprocedure('crear_cita(text,date,integer,text,text,text,integer,text,text)') is not null) as ok`;
 
 /** Crea las tablas y la función la primera vez (idempotente). Si dos instancias lo hacen a la vez, la segunda reintenta. */
 async function asegurarEsquema() {

@@ -6,6 +6,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return responder(res, 405, { error: 'metodo' });
   const b = await leerJson(req);
   if (!b || typeof b !== 'object') return responder(res, 400, { error: 'cuerpo' });
+  const barbero = b.barbero === undefined ? 'yeron' : b.barbero;
+  if (!['yeron', 'emilio'].includes(barbero)) return responder(res, 400, { error: 'barbero_invalido' });
   const texto = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
   try {
     const ip = ipDe(req);
@@ -13,9 +15,9 @@ export default async function handler(req, res) {
     await registrarIntento(consulta, 'reserva', ip);
     if (Math.random() < 0.02) limpiarIntentos(consulta).catch(() => {});
     const [r] = await consulta(
-      'select crear_cita($1, $2::date, $3::int, $4, $5, $6, $7::int, $8) as id',
+      'select crear_cita($1, $2::date, $3::int, $4, $5, $6, $7::int, $8, $9) as id',
       [texto(b.servicio, 150), texto(b.fecha, 10), Number.isInteger(b.hora) ? b.hora : -1, texto(b.nombre, 120), texto(b.telefono, 40),
-        texto(b.sector, 200), Number.isInteger(b.personas) ? b.personas : 1, texto(b.nota, 400)],
+        texto(b.sector, 200), Number.isInteger(b.personas) ? b.personas : 1, texto(b.nota, 400), barbero],
     );
     return responder(res, 200, { id: r.id });
   } catch (err) {

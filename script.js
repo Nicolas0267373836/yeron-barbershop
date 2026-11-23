@@ -12,8 +12,8 @@
      ------------------------------------------------------------------------ */
   const NEGOCIO = {
     nombre: 'Yeron Barbershop',
-    whatsapp: '18293374594',               // wa.me: código de país + número, sin «+»
-    whatsappVisible: '+1 829-337-4594',
+    whatsapp: '18296821198',               // wa.me: código de país + número, sin «+»
+    whatsappVisible: '+1 829-682-1198',
     instagram: 'https://www.instagram.com/yeron_barber/',
     direccion: 'Av. Presidente Enríquez, al lado de Plaza Jorge, San Pedro de Macorís', // ortografía de la avenida: por confirmar
     domicilioDesde: 'RD$1,000',
@@ -146,7 +146,7 @@
     if (h === 12) return `12:00${e}m.`;
     return h < 12 ? `${h}:00${e}a.${e}m.` : `${h - 12}:00${e}p.${e}m.`;
   };
-  const waLink = (texto) => `https://wa.me/${NEGOCIO.whatsapp}${texto ? `?text=${encodeURIComponent(texto)}` : ''}`;
+  const waLink = (texto, numero = NEGOCIO.whatsapp) => `https://wa.me/${numero}${texto ? `?text=${encodeURIComponent(texto)}` : ''}`;
   const icono = (id, clase = '') => `<svg${clase ? ` class="${clase}"` : ''} aria-hidden="true"><use href="#${id}"/></svg>`;
 
   // Bloqueo de scroll compartido por menú, modal y lightbox
@@ -261,7 +261,7 @@
   const CFG = window.YERON_CONFIG || {};
   const enVivo = Boolean(CFG.api);
   const CIERRES = {};            // 'AAAA-MM-DD' → { tipo: 'feriado' | 'cerrado', motivo }
-  const OCUPADAS = new Set();    // 'AAAA-MM-DD|hora'
+  const OCUPADAS = new Set();    // 'barbero|AAAA-MM-DD|hora'
   const AVISO = { activo: false, texto: '' };
   let horarioEnVivo = false;
   let repintarEstado = null;
@@ -305,7 +305,7 @@
   };
   const aplicarOcupadas = (filas) => {
     OCUPADAS.clear();
-    filas.forEach((f) => OCUPADAS.add(`${f.fecha}|${f.hora}`));
+    filas.forEach((f) => OCUPADAS.add(`${f.barbero || 'yeron'}|${f.fecha}|${f.hora}`));
   };
   const aplicarConfig = (f) => {
     NEGOCIO.domicilioDesde = `RD$${miles(f.domicilio_desde)}`;
@@ -1102,12 +1102,15 @@
     const horasEl = $('[data-horas]', form);
     const avisoMie = $('[data-aviso-miercoles]', form);
     const notaCierres = $('[data-cierres-nota]', form);
+    const inBarbero = $('#res-barbero', form);
+    const BARBEROS = { yeron: { nombre: 'Yeron', whatsapp: NEGOCIO.whatsapp }, emilio: { nombre: 'Emilio', whatsapp: '18099691607' } };
+    const barbero = () => BARBEROS[inBarbero.value];
     const inNombre = $('#res-nombre', form);
     const inTel = $('#res-telefono', form);
     const inSector = $('#res-sector', form);
     const inPersonas = $('#res-personas', form);
     const inNota = $('#res-nota', form);
-    const NOMBRES = ['Servicio', 'Día y hora', 'Tus datos', 'Confirmar'];
+    const NOMBRES = ['Barbero y servicio', 'Día y hora', 'Tus datos', 'Confirmar'];
     const st = { paso: 1, servicios: [], fecha: null, dow: null, hora: null };
     let ultimoMensaje = '';
 
@@ -1170,7 +1173,7 @@
       const html = [];
       for (let x = h.abre; x < h.cierra; x += 1) {
         const pasada = esHoy && x < ahora.h + 1;
-        const ocupada = OCUPADAS.has(`${st.fecha}|${x}`);
+        const ocupada = OCUPADAS.has(`${inBarbero.value}|${st.fecha}|${x}`);
         const deshabilitada = pasada || ocupada;
         const marcada = st.hora === x && !deshabilitada;
         html.push(`<div class="hora${ocupada ? ' hora--ocupada' : ''}"><input type="radio" name="hora" id="hora-${x}" value="${x}"${deshabilitada ? ' disabled' : ''}${marcada ? ' checked' : ''}><label for="hora-${x}">${formatoHora(x)}${ocupada ? '<span class="sr"> (ocupada)</span>' : ''}</label></div>`);
@@ -1218,7 +1221,7 @@
     const construirMensaje = () => {
       const dom = esDomicilio();
       const lineas = [
-        'Hola, Yeron. Quiero reservar un turno desde tu página web.',
+        `Hola, ${barbero().nombre}. Quiero reservar un turno.`,
         `• ${st.servicios.length > 1 ? 'Servicios' : 'Servicio'}: ${nombresServicios()}`,
         `• Día: ${st.fecha ? fechaLarga(fechaSel()) : ''}`,
         `• Hora: ${st.hora !== null ? formatoHora(st.hora, true) : ''}`,
@@ -1239,6 +1242,7 @@
       const dom = esDomicilio();
       const personas = inPersonas.value;
       const filas = [
+        ['Barbero', barbero().nombre, 1],
         [st.servicios.length > 1 ? 'Servicios' : 'Servicio', nombresServicios(), 1],
         ['Día', cap(fechaLarga(fechaSel())), 2],
         ['Hora', formatoHora(st.hora), 2],
@@ -1249,15 +1253,16 @@
       if (inNota.value.trim()) filas.push(['Nota', inNota.value.trim(), 3]);
       filas.push(['Total estimado', calcularPrecio().texto, 1]);
       $('[data-resumen]', form).innerHTML = filas.map(([k, v, p]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd>${p ? `<button type="button" data-ir="${p}">Cambiar<span class="sr"> ${k.toLowerCase()}</span></button>` : '<span></span>'}</div>`).join('');
+      $('[data-reserva-destinatario]', form).textContent = barbero().nombre;
       ultimoMensaje = construirMensaje();
       $('[data-reserva-mensaje]', form).textContent = ultimoMensaje;
-      btnEnviar.href = waLink(ultimoMensaje);
+      btnEnviar.href = waLink(ultimoMensaje, barbero().whatsapp);
     };
 
     const validarCampo = (input) => {
       const campo = input.closest('.campo');
       if (input === inNombre) {
-        if (inNombre.value.trim().length < 2) { marcarError(campo, 'Escribe tu nombre para que Yeron sepa quién eres.'); return false; }
+        if (inNombre.value.trim().length < 2) { marcarError(campo, 'Escribe tu nombre para que tu barbero sepa quién eres.'); return false; }
       } else if (input === inTel) {
         const digitos = inTel.value.replace(/\D/g, '');
         if (digitos.length < 10 || digitos.length > 15) { marcarError(campo, 'Escribe tu WhatsApp con código de área (10 dígitos), por ejemplo 829-555-1234.'); return false; }
@@ -1270,6 +1275,7 @@
 
     const validar = (n) => {
       if (n === 1) {
+        if (!barbero()) { errorPaso(1, 'Elige a Yeron o Emilio para continuar.'); inBarbero.focus(); return false; }
         if (!st.servicios.length) { errorPaso(1, 'Elige al menos un servicio para continuar.'); vibrar(opciones); return false; }
         errorPaso(1, '');
         return true;
@@ -1330,6 +1336,7 @@
       }
     };
 
+    inBarbero.addEventListener('change', () => { st.hora = null; errorPaso(1, ''); });
     opciones.addEventListener('change', (e) => {
       if (e.target.name !== 'servicio') return;
       st.servicios = $$('input[name="servicio"]:checked', opciones).map((i) => i.value);
@@ -1380,7 +1387,7 @@
       barra.style.width = '100%';
       $('h3', exito).textContent = guardada ? 'Tu cita quedó registrada' : textosExito.titulo;
       $('p', exito).textContent = guardada
-        ? 'Yeron la ve en su panel y te confirma por WhatsApp. Para agilizarlo, envía el mensaje que abrimos. Si no se abrió, usa los botones de abajo.'
+        ? 'La barbería ya la tiene en su panel. Tu barbero te confirma por WhatsApp. Para agilizarlo, envía el mensaje que abrimos. Si no se abrió, usa los botones de abajo.'
         : textosExito.texto;
       exito.hidden = false;
       $('[data-exito-wa]', exito).href = btnEnviar.href;
@@ -1389,7 +1396,7 @@
     };
     const ERRORES_CITA = {
       hora_ocupada: 'Esa hora acaba de ser tomada. Elige otra.',
-      dia_cerrado: 'Ese día Yeron no atiende. Elige otro día.',
+      dia_cerrado: 'Ese día la barbería no acepta reservas. Elige otro día.',
       hora_pasada: 'Esa hora ya pasó. Elige otra.',
       hora_invalida: 'Esa hora no está disponible. Elige otra.',
       dia_no_disponible: 'Ese día no está disponible. Elige otro.',
@@ -1400,6 +1407,7 @@
       metodo: 'POST',
       espera: 8000,
       cuerpo: {
+        barbero: inBarbero.value,
         servicio: st.servicios.join(','),
         fecha: st.fecha,
         hora: st.hora,
@@ -1415,7 +1423,7 @@
       if (!(validar(1) && validar(2) && validar(3))) { e.preventDefault(); return; }
       if (btnEnviar.classList.contains('is-loading')) { e.preventDefault(); return; }
       ultimoMensaje = construirMensaje();
-      btnEnviar.href = waLink(ultimoMensaje);
+      btnEnviar.href = waLink(ultimoMensaje, barbero().whatsapp);
       btnEnviar.classList.add('is-loading');
       btnEnviar.setAttribute('aria-busy', 'true');
       const espera = new Promise((r) => setTimeout(r, reducido() ? 60 : 900));
@@ -1438,7 +1446,7 @@
           return;
         }
         toast(err.codigo === 'demasiadas_citas'
-          ? 'Ya tienes 3 citas activas con ese WhatsApp. Escríbele a Yeron para cambiarlas.'
+          ? 'Ya tienes 3 citas activas con ese WhatsApp. Escríbele a tu barbero para cambiarlas.'
           : 'No se pudo registrar la cita en el panel. Envía el mensaje por WhatsApp.');
         await espera;
       }

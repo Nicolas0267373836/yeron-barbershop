@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       case 'citas': {
         const desde = FECHA.test(b.desde) ? b.desde : '1970-01-01';
         const filas = await consulta(
-          `select id, creado, servicio, fecha::text as fecha, hora, lugar, nombre, telefono, sector, personas, nota, estado, nota_interna
+          `select id, creado, barbero, servicio, fecha::text as fecha, hora, lugar, nombre, telefono, sector, personas, nota, estado, nota_interna
            from citas where fecha >= $1::date order by fecha, hora limit 1000`, [desde]);
         const cierres = await consulta(`select fecha::text as fecha, tipo, motivo from cierres where fecha >= $1::date order by fecha`, [FECHA.test(b.hoy) ? b.hoy : desde]);
         return responder(res, 200, { citas: filas, cierres });
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         try {
           const filas = await consulta(
             `update citas set ${sets.join(', ')} where id = $1::uuid
-             returning id, creado, servicio, fecha::text as fecha, hora, lugar, nombre, telefono, sector, personas, nota, estado, nota_interna`, p);
+             returning id, creado, barbero, servicio, fecha::text as fecha, hora, lugar, nombre, telefono, sector, personas, nota, estado, nota_interna`, p);
           if (!filas.length) return responder(res, 404, { error: 'no_existe' });
           return responder(res, 200, { cita: filas[0] });
         } catch (err) {
