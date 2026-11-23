@@ -36,6 +36,8 @@ insert into horario (dow, modo, abre, cierra) values
   (5, 'barberia', 8, 21),
   (6, 'barberia', 8, 21)
 on conflict (dow) do nothing;
+create table if not exists horario_emilio (like horario including all);
+insert into horario_emilio (dow, modo, abre, cierra) select dow, modo, abre, cierra from horario on conflict (dow) do nothing;
 
 -- Días cerrados (feriados, descansos, viajes…). Un día cerrado no admite citas.
 create table if not exists cierres (
@@ -94,7 +96,7 @@ create index if not exists intentos_idx on intentos (tipo, ip, creado);
 -- Errores (mensaje del error): servicio_invalido, nombre_invalido, telefono_invalido,
 -- fecha_invalida, dia_no_disponible, dia_cerrado, hora_invalida, hora_pasada,
 -- servicio_no_disponible, sector_requerido, demasiadas_citas, hora_ocupada.
-create or replace function crear_cita(
+create or replace function crear_cita_con_horario(
   p_servicio text,
   p_fecha    date,
   p_hora     integer,
@@ -131,7 +133,11 @@ begin
   if char_length(v_digitos) < 10 or char_length(v_digitos) > 15 then raise exception 'telefono_invalido'; end if;
   if p_fecha is null or p_fecha < v_hoy or p_fecha > v_hoy + 30 then raise exception 'fecha_invalida'; end if;
 
-  select * into v_h from horario where dow = extract(dow from p_fecha)::smallint;
+  if p_barbero = 'emilio' then
+    select * into v_h from horario_emilio where dow = extract(dow from p_fecha)::smallint;
+  else
+    select * into v_h from horario where dow = extract(dow from p_fecha)::smallint;
+  end if;
   if not found or v_h.modo not in ('barberia', 'domicilio') then raise exception 'dia_no_disponible'; end if;
   if exists (select 1 from cierres where fecha = p_fecha) then raise exception 'dia_cerrado'; end if;
   if p_hora is null or p_hora < v_h.abre or p_hora >= v_h.cierra then raise exception 'hora_invalida'; end if;

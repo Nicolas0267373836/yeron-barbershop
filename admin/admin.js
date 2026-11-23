@@ -196,7 +196,7 @@
   let citaEnEdicion = null;
   const opcionesHoras = (clave, cita) => {
     const dt = deClave(clave);
-    const h = est.horario.find((x) => x.dow === dt.getUTCDay());
+    const h = est.horario.find((x) => x.dow === dt.getUTCDay() && (x.barbero || 'yeron') === (cita.barbero || 'yeron'));
     if (est.cierres.some((x) => x.fecha === clave)) return { error: 'Ese día está cerrado.' };
     if (!h || !['barberia', 'domicilio'].includes(h.modo)) return { error: 'Ese día no hay servicio.' };
     if (h.modo !== cita.lugar) return { error: h.modo === 'domicilio' ? 'Ese día es solo a domicilio.' : 'Esa cita es a domicilio y ese día no hay domicilios.' };
@@ -256,7 +256,7 @@
   const pintarHorario = () => {
     const orden = [1, 2, 3, 4, 5, 6, 0];
     $('[data-filas-horario]').innerHTML = orden.map((dow) => {
-      const f = est.horario.find((x) => x.dow === dow) || { dow, modo: 'por_confirmar', abre: null, cierra: null };
+      const f = est.horario.find((x) => x.dow === dow && (x.barbero || 'yeron') === $('#horario-barbero').value) || { dow, modo: 'por_confirmar', abre: null, cierra: null };
       const modos = ['barberia'].concat(dow === 3 ? ['domicilio'] : [], ['cerrado', 'por_confirmar']);
       const conHoras = f.modo === 'barberia' || f.modo === 'domicilio';
       return `<div class="fila-dia" data-dow="${dow}">
@@ -398,6 +398,10 @@
     });
 
     // Horario
+    $('#horario-barbero').addEventListener('change', () => {
+      $('[data-horario-error]').textContent = '';
+      pintarHorario();
+    });
     $('[data-filas-horario]').addEventListener('change', (e) => {
       if (e.target.name !== 'modo') return;
       const fila = e.target.closest('.fila-dia');
@@ -419,13 +423,15 @@
         cambios.push(conHoras ? { dow, modo, abre, cierra } : { dow, modo });
       }
       const btn = $('[data-horario-btn]');
+      const selector = $('#horario-barbero');
+      selector.disabled = true;
       cargando(btn, true);
       try {
-        await llamar('horario_guardar', { dias: cambios });
+        await llamar('horario_guardar', { barbero: selector.value, dias: cambios });
         await cargarHorarioConfig();
         pintarHorario();
         toast('Horario guardado. Ya se ve en la web.');
-      } catch (er) { err.textContent = 'No se pudo guardar el horario. Intenta de nuevo.'; } finally { cargando(btn, false); }
+      } catch (er) { err.textContent = 'No se pudo guardar el horario. Intenta de nuevo.'; } finally { selector.disabled = false; cargando(btn, false); }
     });
     $('[data-form-tarifa]').addEventListener('submit', async (e) => {
       e.preventDefault();

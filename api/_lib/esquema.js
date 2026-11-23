@@ -20,6 +20,8 @@ export const SENTENCIAS = [
   (5, 'barberia', 8, 21),
   (6, 'barberia', 8, 21)
 on conflict (dow) do nothing`,
+  String.raw`create table if not exists horario_emilio (like horario including all)`,
+  String.raw`insert into horario_emilio (dow, modo, abre, cierra) select dow, modo, abre, cierra from horario on conflict (dow) do nothing`,
   String.raw`create table if not exists cierres (
   fecha  date primary key,
   tipo   text not null default 'feriado' check (tipo in ('feriado', 'cerrado')),
@@ -60,7 +62,7 @@ on conflict (dow) do nothing`,
   creado timestamptz not null default now()
 )`,
   String.raw`create index if not exists intentos_idx on intentos (tipo, ip, creado)`,
-  String.raw`create or replace function crear_cita(
+  String.raw`create or replace function crear_cita_con_horario(
   p_servicio text,
   p_fecha    date,
   p_hora     integer,
@@ -97,7 +99,11 @@ begin
   if char_length(v_digitos) < 10 or char_length(v_digitos) > 15 then raise exception 'telefono_invalido'; end if;
   if p_fecha is null or p_fecha < v_hoy or p_fecha > v_hoy + 30 then raise exception 'fecha_invalida'; end if;
 
-  select * into v_h from horario where dow = extract(dow from p_fecha)::smallint;
+  if p_barbero = 'emilio' then
+    select * into v_h from horario_emilio where dow = extract(dow from p_fecha)::smallint;
+  else
+    select * into v_h from horario where dow = extract(dow from p_fecha)::smallint;
+  end if;
   if not found or v_h.modo not in ('barberia', 'domicilio') then raise exception 'dia_no_disponible'; end if;
   if exists (select 1 from cierres where fecha = p_fecha) then raise exception 'dia_cerrado'; end if;
   if p_hora is null or p_hora < v_h.abre or p_hora >= v_h.cierra then raise exception 'hora_invalida'; end if;

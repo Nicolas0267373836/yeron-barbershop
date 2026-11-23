@@ -261,6 +261,7 @@
   const CFG = window.YERON_CONFIG || {};
   const enVivo = Boolean(CFG.api);
   const CIERRES = {};            // 'AAAA-MM-DD' → { tipo: 'feriado' | 'cerrado', motivo }
+  const HORARIO_EMILIO = {};
   const OCUPADAS = new Set();    // 'barbero|AAAA-MM-DD|hora'
   const AVISO = { activo: false, texto: '' };
   let horarioEnVivo = false;
@@ -294,9 +295,10 @@
   const aplicarHorario = (filas) => {
     filas.forEach((f) => {
       if (f.dow < 0 || f.dow > 6) return;
-      if (f.modo === 'barberia' || f.modo === 'domicilio') HORARIO[f.dow] = { abre: f.abre, cierra: f.cierra, modo: f.modo };
-      else if (f.modo === 'cerrado') HORARIO[f.dow] = { abre: 0, cierra: 0, modo: 'cerrado' };
-      else HORARIO[f.dow] = null;
+      const horario = f.barbero === 'emilio' ? HORARIO_EMILIO : HORARIO;
+      if (f.modo === 'barberia' || f.modo === 'domicilio') horario[f.dow] = { abre: f.abre, cierra: f.cierra, modo: f.modo };
+      else if (f.modo === 'cerrado') horario[f.dow] = { abre: 0, cierra: 0, modo: 'cerrado' };
+      else horario[f.dow] = null;
     });
   };
   const aplicarCierres = (filas) => {
@@ -384,6 +386,7 @@
     if (!enVivo) return;
     const { desde, hasta } = rangoFechas();
     const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
+    if (d && Array.isArray(d.horario)) aplicarHorario(d.horario);
     if (d && Array.isArray(d.ocupadas)) aplicarOcupadas(d.ocupadas);
   };
   const cargarEnVivo = async () => {
@@ -1124,6 +1127,8 @@
         </label>
       </div>`).join('');
 
+    const horarioDelBarbero = () => inBarbero.value === 'emilio' ? HORARIO_EMILIO : HORARIO;
+    const esDiaDomicilio = (dow) => horarioDelBarbero()[dow]?.modo === 'domicilio';
     const tiene = (id) => st.servicios.includes(id);
     const esDomicilio = () => tiene('domicilio') || esDiaDomicilio(st.dow);
     const elegidos = () => SERVICIOS.filter((s) => tiene(s.id));          // en el orden del menú
@@ -1167,7 +1172,12 @@
         horasEl.innerHTML = '<p class="horas__vacio">Elige un día para ver las horas.</p>';
         return;
       }
-      const h = HORARIO[st.dow];
+      const h = horarioDelBarbero()[st.dow];
+      if (!h || !['barberia', 'domicilio'].includes(h.modo)) {
+        st.hora = null;
+        horasEl.innerHTML = '<p class="horas__vacio">Elige otro día.</p>';
+        return;
+      }
       const ahora = ahoraRD();
       const esHoy = st.fecha === claveFecha(diaRD(ahora, 0));
       const html = [];
@@ -1188,7 +1198,7 @@
       for (let k = 0; k < 14; k += 1) {
         const dt = diaRD(ahora, k);
         const dow = dt.getUTCDay();
-        const h = HORARIO[dow];
+        const h = horarioDelBarbero()[dow];
         const clave = claveFecha(dt);
         let deshabilitado = false;
         let etiqueta = '';
@@ -1300,7 +1310,7 @@
       st.paso = n;
       if (n === 2) {
         renderDias();
-        if (enVivo) cargarOcupadas().then(() => { if (st.paso === 2) renderHoras(); }).catch(() => {});
+        if (enVivo) cargarOcupadas().then(() => { if (st.paso === 2) renderDias(); }).catch(() => {});
       }
       if (n === 3) {
         $$('[data-solo-domicilio]', form).forEach((el) => { el.hidden = !esDomicilio(); });

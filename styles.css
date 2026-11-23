@@ -881,6 +881,7 @@ html:not(.js) .filtros { display: none; }
 .reserva__total-detalle { flex-basis: 100%; font-size: .85rem; opacity: .8; }
 .reserva__total-detalle:empty { display: none; }
 .paso__ayuda { margin: -8px 0 16px; color: var(--pizarra); font-size: .92rem; }
+.campo--barbero { margin-bottom: 24px; }
 .paso__ayuda { margin-bottom: 14px; color: var(--pizarra); font-size: .9rem; }
 
 .opciones-servicio { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -1189,7 +1190,9 @@ html.js img.nitida:not(.is-cargada) { filter: blur(14px); transform: scale(1.03)
   .opciones-servicio, .campos { grid-template-columns: minmax(0, 1fr); }
   .resumen > div { grid-template-columns: minmax(0, 1fr) auto; }
   .resumen dt { grid-column: 1 / -1; }
-  .reserva__nav .btn { flex: 1; }
+  .reserva__nav { flex-wrap: wrap; }
+  .reserva__nav .btn { flex: 1; min-width: 0; }
+  .reserva__nav [data-reserva-enviar] { flex: 1 1 100%; white-space: normal; text-align: center; }
   .reserva__exito-acciones .btn { flex: 1 1 100%; }
   .acordeon__panel p { padding-right: 8px; }
   .modal { padding: 0; align-items: end; }

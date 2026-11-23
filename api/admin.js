@@ -1,5 +1,5 @@
 // POST /api/admin  { accion, ...datos } — panel de Yeron. Todo requiere la sesión firmada, salvo «login».
-import { consulta } from './_lib/db.js';
+import { consulta, HORARIOS } from './_lib/db.js';
 import { responder, leerJson, ipDe, esChoqueDeHora, permitir, registrarIntento } from './_lib/util.js';
 import { claveCorrecta, crearCookie, cookieVacia, sesionValida } from './_lib/auth.js';
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
       case 'ajustes': {
         const [horario, config] = await Promise.all([
-          consulta('select dow, modo, abre, cierra from horario order by dow'),
+          consulta(HORARIOS),
           consulta('select domicilio_desde, aviso, aviso_activo from config where id = 1'),
         ]);
         return responder(res, 200, { horario, config: config[0] || { domicilio_desde: 1000, aviso: '', aviso_activo: false } });
@@ -90,6 +90,9 @@ export default async function handler(req, res) {
       }
 
       case 'horario_guardar': {
+        const barbero = b.barbero ?? 'yeron';
+        if (!['yeron', 'emilio'].includes(barbero)) return responder(res, 400, { error: 'barbero' });
+        const tabla = barbero === 'emilio' ? 'horario_emilio' : 'horario';
         const dias = Array.isArray(b.dias) ? b.dias : [];
         const limpios = [];
         for (const d of dias) {
@@ -102,7 +105,7 @@ export default async function handler(req, res) {
         if (!limpios.length) return responder(res, 400, { error: 'datos' });
         // Una sola sentencia: se guardan todos los días o ninguno.
         await consulta(
-          `update horario h set modo = x.modo, abre = x.abre, cierra = x.cierra
+          `update ${tabla} h set modo = x.modo, abre = x.abre, cierra = x.cierra
            from json_to_recordset($1::json) as x(dow int, modo text, abre int, cierra int) where h.dow = x.dow`, [JSON.stringify(limpios)]);
         return responder(res, 200, { ok: true });
       }

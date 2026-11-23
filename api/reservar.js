@@ -1,4 +1,4 @@
-// POST /api/reservar — crea una cita pendiente. Todo se valida en la base (función crear_cita).
+// POST /api/reservar — crea una cita pendiente. Todo se valida en la base (función crear_cita_con_horario).
 import { consulta } from './_lib/db.js';
 import { responder, leerJson, ipDe, codigoDeError, esChoqueDeHora, permitir, registrarIntento, limpiarIntentos } from './_lib/util.js';
 
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     await registrarIntento(consulta, 'reserva', ip);
     if (Math.random() < 0.02) limpiarIntentos(consulta).catch(() => {});
     const [r] = await consulta(
-      'select crear_cita($1, $2::date, $3::int, $4, $5, $6, $7::int, $8, $9) as id',
+      'select crear_cita_con_horario($1, $2::date, $3::int, $4, $5, $6, $7::int, $8, $9) as id',
       [texto(b.servicio, 150), texto(b.fecha, 10), Number.isInteger(b.hora) ? b.hora : -1, texto(b.nombre, 120), texto(b.telefono, 40),
         texto(b.sector, 200), Number.isInteger(b.personas) ? b.personas : 1, texto(b.nota, 400), barbero],
     );
