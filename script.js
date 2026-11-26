@@ -261,7 +261,8 @@
   const CFG = window.YERON_CONFIG || {};
   const enVivo = Boolean(CFG.api);
   const CIERRES = {};            // 'AAAA-MM-DD' → { tipo: 'feriado' | 'cerrado', motivo }
-  const HORARIO_EMILIO = {};
+  const horariosPorBarbero = new Map([['yeron', HORARIO]]);
+  let barberosActivos = enVivo ? [] : [{ id: 'yeron', nombre: 'Yeron', whatsapp: NEGOCIO.whatsapp }];
   const OCUPADAS = new Set();    // 'barbero|AAAA-MM-DD|hora'
   const AVISO = { activo: false, texto: '' };
   let horarioEnVivo = false;
@@ -295,7 +296,9 @@
   const aplicarHorario = (filas) => {
     filas.forEach((f) => {
       if (f.dow < 0 || f.dow > 6) return;
-      const horario = f.barbero === 'emilio' ? HORARIO_EMILIO : HORARIO;
+      const id = f.barbero || 'yeron';
+      if (!horariosPorBarbero.has(id)) horariosPorBarbero.set(id, {});
+      const horario = horariosPorBarbero.get(id);
       if (f.modo === 'barberia' || f.modo === 'domicilio') horario[f.dow] = { abre: f.abre, cierra: f.cierra, modo: f.modo };
       else if (f.modo === 'cerrado') horario[f.dow] = { abre: 0, cierra: 0, modo: 'cerrado' };
       else horario[f.dow] = null;
@@ -386,6 +389,7 @@
     if (!enVivo) return;
     const { desde, hasta } = rangoFechas();
     const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
+    if (d && Array.isArray(d.barberos)) barberosActivos = d.barberos;
     if (d && Array.isArray(d.horario)) aplicarHorario(d.horario);
     if (d && Array.isArray(d.ocupadas)) aplicarOcupadas(d.ocupadas);
   };
@@ -394,6 +398,7 @@
     const { desde, hasta } = rangoFechas();
     const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
     if (!d) return;
+    if (Array.isArray(d.barberos)) barberosActivos = d.barberos;
     if (Array.isArray(d.horario) && d.horario.length) { aplicarHorario(d.horario); horarioEnVivo = true; }
     if (Array.isArray(d.cierres)) aplicarCierres(d.cierres);
     if (d.config) aplicarConfig(d.config);
@@ -1106,8 +1111,13 @@
     const avisoMie = $('[data-aviso-miercoles]', form);
     const notaCierres = $('[data-cierres-nota]', form);
     const inBarbero = $('#res-barbero', form);
-    const BARBEROS = { yeron: { nombre: 'Yeron', whatsapp: NEGOCIO.whatsapp }, emilio: { nombre: 'Emilio', whatsapp: '18099691607' } };
-    const barbero = () => BARBEROS[inBarbero.value];
+    const barbero = () => barberosActivos.find((b) => b.id === inBarbero.value);
+    const pintarBarberos = () => {
+      const anterior = inBarbero.value;
+      inBarbero.replaceChildren(new Option(barberosActivos.length ? 'Elige un barbero' : 'No hay barberos disponibles', ''),
+        ...barberosActivos.map((b) => new Option(b.nombre, b.id)));
+      if (barberosActivos.some((b) => b.id === anterior)) inBarbero.value = anterior;
+    };
     const inNombre = $('#res-nombre', form);
     const inTel = $('#res-telefono', form);
     const inSector = $('#res-sector', form);
@@ -1127,7 +1137,7 @@
         </label>
       </div>`).join('');
 
-    const horarioDelBarbero = () => inBarbero.value === 'emilio' ? HORARIO_EMILIO : HORARIO;
+    const horarioDelBarbero = () => horariosPorBarbero.get(inBarbero.value) || {};
     const esDiaDomicilio = (dow) => horarioDelBarbero()[dow]?.modo === 'domicilio';
     const tiene = (id) => st.servicios.includes(id);
     const esDomicilio = () => tiene('domicilio') || esDiaDomicilio(st.dow);
@@ -1285,7 +1295,7 @@
 
     const validar = (n) => {
       if (n === 1) {
-        if (!barbero()) { errorPaso(1, 'Elige a Yeron o Emilio para continuar.'); inBarbero.focus(); return false; }
+        if (!barbero()) { if (st.paso !== 1) irA(1, -1); errorPaso(1, 'Elige un barbero disponible para continuar.'); inBarbero.focus(); return false; }
         if (!st.servicios.length) { errorPaso(1, 'Elige al menos un servicio para continuar.'); vibrar(opciones); return false; }
         errorPaso(1, '');
         return true;
@@ -1310,7 +1320,7 @@
       st.paso = n;
       if (n === 2) {
         renderDias();
-        if (enVivo) cargarOcupadas().then(() => { if (st.paso === 2) renderDias(); }).catch(() => {});
+        if (enVivo) cargarOcupadas().then(() => { pintarBarberos(); if (st.paso === 2) renderDias(); }).catch(() => {});
       }
       if (n === 3) {
         $$('[data-solo-domicilio]', form).forEach((el) => { el.hidden = !esDomicilio(); });
@@ -1445,6 +1455,15 @@
         await Promise.all([guardarCita(), espera]);
         guardada = true;
       } catch (err) {
+        if (err.codigo === 'barbero_inactivo' || err.codigo === 'barbero_invalido') {
+          btnEnviar.classList.remove('is-loading');
+          btnEnviar.removeAttribute('aria-busy');
+          await cargarEnVivo().catch(() => {});
+          st.hora = null;
+          irA(1, -1);
+          errorPaso(1, 'Ese barbero ya no está disponible. Elige otro.');
+          return;
+        }
         const msg = ERRORES_CITA[err.codigo];
         if (msg) {            // la hora o el día dejó de estar disponible: volver a elegir
           btnEnviar.classList.remove('is-loading');
@@ -1481,10 +1500,11 @@
       else toast('No se pudo copiar el mensaje.');
     });
 
+    pintarBarberos();
     irA(1);
 
     return {
-      refrescar() { if (st.paso === 2) renderDias(); },
+      refrescar() { pintarBarberos(); if (st.paso === 2) renderDias(); },
       preseleccionar(id) {
         if (!exito.hidden) reiniciar();
         const radio = $(`#srv-${id}`, form);

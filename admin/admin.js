@@ -79,7 +79,7 @@
   };
 
   /* ---------- Estado ---------- */
-  const est = { citas: [], cierres: [], horario: [], config: null, filtro: 'agenda', pendientesVistos: null, primeraCarga: true };
+  const est = { citas: [], cierres: [], horario: [], barberos: [], config: null, filtro: 'agenda', pendientesVistos: null, primeraCarga: true };
 
   const mostrar = (vista) => {
     $$('[data-vista]').forEach((el) => { el.hidden = el.dataset.vista !== vista; });
@@ -102,6 +102,7 @@
   const cargarHorarioConfig = async () => {
     const d = await llamar('ajustes');
     est.horario = d.horario;
+    est.barberos = d.barberos;
     est.config = d.config || { domicilio_desde: 1000, aviso: '', aviso_activo: false };
   };
 
@@ -112,7 +113,7 @@
     ? `A domicilio · ${c.sector || 'sin sector'} · ${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}`
     : 'En la barbería');
 
-  const nombreBarbero = (c) => c.barbero === 'emilio' ? 'Emilio' : 'Yeron';
+  const nombreBarbero = (c) => est.barberos.find((b) => b.id === (c.barbero || 'yeron'))?.nombre || c.barbero || 'Yeron';
 
   const mensajeWa = (c) => {
     const cuando = `${fechaLarga(c.fecha)} a las ${hora12(c.hora)}`;
@@ -137,7 +138,7 @@
         <span class="estado estado--${esc(c.estado)}">${esc(ESTADOS[c.estado] || c.estado)}</span>
       </header>
       <h3 class="cita__nombre">${esc(c.nombre)}</h3>
-      <p class="cita__detalle">${esc(String(c.servicio).split(',').map((id) => SERVICIOS[id] || id).join(' + '))} · ${esc(lugarTexto(c))} · con ${nombreBarbero(c)}</p>
+      <p class="cita__detalle">${esc(String(c.servicio).split(',').map((id) => SERVICIOS[id] || id).join(' + '))} · ${esc(lugarTexto(c))} · con ${esc(nombreBarbero(c))}</p>
       ${c.nota ? `<p class="cita__nota">«${esc(c.nota)}»</p>` : ''}
       <p class="cita__contacto"><a href="tel:+${esc(waNumero(c.telefono))}">${esc(c.telefono)}</a> · <a href="${esc(waEnlace(c.telefono, mensajeWa(c)))}" target="_blank" rel="noopener">Escribir por WhatsApp</a></p>
       <div class="cita__acciones">${accionesDe(c)}</div>
@@ -200,7 +201,7 @@
     if (est.cierres.some((x) => x.fecha === clave)) return { error: 'Ese día está cerrado.' };
     if (!h || !['barberia', 'domicilio'].includes(h.modo)) return { error: 'Ese día no hay servicio.' };
     if (h.modo !== cita.lugar) return { error: h.modo === 'domicilio' ? 'Ese día es solo a domicilio.' : 'Esa cita es a domicilio y ese día no hay domicilios.' };
-    const ocupadas = new Set(est.citas.filter((c) => ACTIVAS.includes(c.estado) && c.fecha === clave && nombreBarbero(c) === nombreBarbero(cita) && c.id !== cita.id).map((c) => c.hora));
+    const ocupadas = new Set(est.citas.filter((c) => ACTIVAS.includes(c.estado) && c.fecha === clave && (c.barbero || 'yeron') === (cita.barbero || 'yeron') && c.id !== cita.id).map((c) => c.hora));
     const ahora = ahoraRD();
     const horas = [];
     for (let x = h.abre; x < h.cierra; x += 1) {
@@ -253,7 +254,14 @@
     for (let x = desde; x <= hasta; x += 1) h += `<option value="${x}"${x === sel ? ' selected' : ''}>${hora12(x)}</option>`;
     return h;
   };
-  const pintarHorario = () => {
+  const pintarHorario = (seleccion) => {
+    const selector = $('#horario-barbero');
+    const anterior = seleccion || selector.value;
+    selector.innerHTML = est.barberos.map((b) => `<option value="${esc(b.id)}">${esc(b.nombre)}${b.activo ? '' : ' (inactivo)'}</option>`).join('');
+    selector.value = est.barberos.some((b) => b.id === anterior) ? anterior : est.barberos.find((b) => b.activo)?.id || est.barberos[0]?.id || '';
+    $('[data-lista-barberos]').innerHTML = est.barberos.map((b) => `
+      <p><strong>${esc(b.nombre)}</strong> · +${esc(b.whatsapp)} · ${b.activo ? 'Activo' : 'Inactivo'}
+      <button type="button" class="btn btn--chico ${b.activo ? 'btn--peligro' : 'btn--linea'}" data-estado-barbero="${esc(b.id)}">${b.activo ? 'Quitar' : 'Reactivar'}</button></p>`).join('');
     const orden = [1, 2, 3, 4, 5, 6, 0];
     $('[data-filas-horario]').innerHTML = orden.map((dow) => {
       const f = est.horario.find((x) => x.dow === dow && (x.barbero || 'yeron') === $('#horario-barbero').value) || { dow, modo: 'por_confirmar', abre: null, cierra: null };
@@ -398,6 +406,37 @@
     });
 
     // Horario
+    $('[data-form-barbero]').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.currentTarget;
+      const btn = $('button[type="submit"]', f);
+      const err = $('[data-barbero-error]');
+      err.textContent = '';
+      cargando(btn, true);
+      try {
+        const {barbero} = await llamar('barbero_agregar', { nombre: f.elements.nombre.value, whatsapp: f.elements.whatsapp.value });
+        f.reset();
+        await cargarHorarioConfig();
+        pintarHorario(barbero.id);
+        toast('Barbero agregado. Configura su horario.');
+      } catch (e) {
+        err.textContent = e.codigo === 'datos' ? 'Revisa el nombre y el WhatsApp con código de país.' : 'No se pudo agregar el barbero. Actualiza el panel y revisa la lista.';
+      } finally { cargando(btn, false); }
+    });
+    $('[data-lista-barberos]').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-estado-barbero]');
+      if (!btn) return;
+      const b = est.barberos.find((item) => item.id === btn.dataset.estadoBarbero);
+      if (!b) return;
+      cargando(btn, true);
+      try {
+        await llamar('barbero_estado', { barbero: b.id, activo: !b.activo });
+        await cargarHorarioConfig();
+        pintarHorario();
+        toast(b.activo ? 'Barbero retirado de las nuevas reservas.' : 'Barbero reactivado.');
+      } catch (e) { toast('No se pudo actualizar el estado. Actualiza el panel y revisa la lista.', true); }
+      finally { cargando(btn, false); }
+    });
     $('#horario-barbero').addEventListener('change', () => {
       $('[data-horario-error]').textContent = '';
       pintarHorario();
@@ -488,7 +527,7 @@
 
   const entrar = async () => {
     mostrar('panel');
-    await Promise.all([recargar(false), cargarHorarioConfig().then(pintarHorario).catch(() => toast('No se pudo cargar el horario.', true))]);
+    await Promise.all([recargar(false), cargarHorarioConfig().then(() => { pintarHorario(); pintarCitas(); }).catch(() => toast('No se pudo cargar el horario.', true))]);
     if (est.primeraCarga) { est.primeraCarga = false; if (pendientes().length) { est.filtro = 'pendientes'; pintarCitas(); } }
     clearInterval(est.timer);
     est.timer = setInterval(() => { if (!document.hidden) recargar(false); }, 60000);

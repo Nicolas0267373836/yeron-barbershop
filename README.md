@@ -179,6 +179,8 @@ Los miércoles solo permite domicilio: pide sector y cantidad de personas, y agr
 
 ## Panel administrativo
 
+En **Horario → Barberos** se puede agregar un barbero con su WhatsApp, retirarlo de las reservas o reactivarlo. Los nuevos empiezan con sus días por confirmar hasta que se guarde su horario. Retirar a un barbero conserva su historial y sus citas existentes.
+
 Yeron gestiona desde `/admin` (por ejemplo `https://TU-DOMINIO/admin/`) y la web pública refleja los cambios sin tocar código.
 
 **Qué puede hacer el panel**

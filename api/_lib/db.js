@@ -27,8 +27,8 @@ const ESTA_LISTA = `select (to_regclass('public.horario') is not null
   and to_regclass('public.citas') is not null and to_regclass('public.intentos') is not null
   and to_regclass('public.citas_barbero_hora_unica') is not null
   and to_regclass('public.citas_hora_unica') is null
-  and to_regclass('public.horario_emilio') is not null
-  and to_regprocedure('crear_cita_con_horario(text,date,integer,text,text,text,integer,text,text)') is not null) as ok`;
+  and to_regclass('public.horario_barberos') is not null
+  and to_regprocedure('crear_cita_con_barbero(text,date,integer,text,text,text,integer,text,text)') is not null) as ok`;
 
 /** Crea las tablas y la función la primera vez (idempotente). Si dos instancias lo hacen a la vez, la segunda reintenta. */
 async function asegurarEsquema() {
@@ -48,5 +48,4 @@ export async function consulta(texto, params = []) {
   return ejecutar(texto, params);
 }
 
-export const HORARIOS = `select 'yeron' as barbero, dow, modo, abre, cierra from horario
-  union all select 'emilio', dow, modo, abre, cierra from horario_emilio order by barbero, dow`;
+export const HORARIOS = 'select barbero, dow, modo, abre, cierra from horario_barberos order by barbero, dow';

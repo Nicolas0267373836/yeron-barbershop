@@ -41,11 +41,12 @@ export default async function handler(req, res) {
       }
 
       case 'ajustes': {
-        const [horario, config] = await Promise.all([
+        const [horario, config, barberos] = await Promise.all([
           consulta(HORARIOS),
+          consulta('select id, nombre, whatsapp, activo from barberos order by nombre'),
           consulta('select domicilio_desde, aviso, aviso_activo from config where id = 1'),
         ]);
-        return responder(res, 200, { horario, config: config[0] || { domicilio_desde: 1000, aviso: '', aviso_activo: false } });
+        return responder(res, 200, { barberos, horario, config: config[0] || { domicilio_desde: 1000, aviso: '', aviso_activo: false } });
       }
 
       case 'cita_actualizar': {
@@ -89,10 +90,33 @@ export default async function handler(req, res) {
         return responder(res, 200, { ok: true });
       }
 
+      case 'barbero_agregar': {
+        const nombre = typeof b.nombre === 'string' ? b.nombre.trim() : '';
+        const whatsapp = typeof b.whatsapp === 'string' && /^[+0-9 ().-]+$/.test(b.whatsapp) ? b.whatsapp.replace(/[^0-9]/g, '') : '';
+        if (nombre.length < 2 || nombre.length > 60 || !/^[1-9][0-9]{9,14}$/.test(whatsapp)) {
+          return responder(res, 400, { error: 'datos' });
+        }
+        const [barbero] = await consulta(
+          `with nuevo as (
+            insert into barberos (id, nombre, whatsapp) values (gen_random_uuid()::text, $1, $2)
+            returning id
+          ), dias as (
+            insert into horario_barberos (barbero, dow, modo)
+            select id, dow, 'por_confirmar' from nuevo cross join generate_series(0, 6) as dias(dow)
+          ) select id from nuevo`, [nombre, whatsapp]);
+        return responder(res, 201, { barbero });
+      }
+
+      case 'barbero_estado': {
+        if (typeof b.barbero !== 'string' || typeof b.activo !== 'boolean') return responder(res, 400, { error: 'datos' });
+        const filas = await consulta('update barberos set activo = $2 where id = $1 returning id', [b.barbero, b.activo]);
+        if (!filas.length) return responder(res, 404, { error: 'no_existe' });
+        return responder(res, 200, { ok: true });
+      }
+
       case 'horario_guardar': {
         const barbero = b.barbero ?? 'yeron';
-        if (!['yeron', 'emilio'].includes(barbero)) return responder(res, 400, { error: 'barbero' });
-        const tabla = barbero === 'emilio' ? 'horario_emilio' : 'horario';
+        if (typeof barbero !== 'string') return responder(res, 400, { error: 'barbero' });
         const dias = Array.isArray(b.dias) ? b.dias : [];
         const limpios = [];
         for (const d of dias) {
@@ -104,9 +128,10 @@ export default async function handler(req, res) {
         }
         if (!limpios.length) return responder(res, 400, { error: 'datos' });
         // Una sola sentencia: se guardan todos los días o ninguno.
-        await consulta(
-          `update ${tabla} h set modo = x.modo, abre = x.abre, cierra = x.cierra
-           from json_to_recordset($1::json) as x(dow int, modo text, abre int, cierra int) where h.dow = x.dow`, [JSON.stringify(limpios)]);
+        const filas = await consulta(
+          `update horario_barberos h set modo = x.modo, abre = x.abre, cierra = x.cierra
+           from json_to_recordset($1::json) as x(dow int, modo text, abre int, cierra int) where h.dow = x.dow and h.barbero = $2 returning h.dow`, [JSON.stringify(limpios), barbero]);
+        if (!filas.length) return responder(res, 404, { error: 'no_existe' });
         return responder(res, 200, { ok: true });
       }
 

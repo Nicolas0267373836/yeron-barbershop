@@ -116,12 +116,30 @@
     <!-- HORARIO -->
     <div role="tabpanel" id="panel-horario" aria-labelledby="tab-horario" data-panel="horario" hidden>
       <div class="tarjeta">
+        <h2 class="subtitulo">Barberos</h2>
+        <p class="suave">Quitar un barbero lo oculta de las nuevas reservas. Sus citas y su horario quedan guardados.</p>
+        <div data-lista-barberos></div>
+        <form data-form-barbero>
+          <div class="campo campo--corto">
+            <label for="barbero-nombre">Nombre</label>
+            <input id="barbero-nombre" name="nombre" required minlength="2" maxlength="60">
+          </div>
+          <div class="campo campo--corto">
+            <label for="barbero-whatsapp">WhatsApp con código de país</label>
+            <input id="barbero-whatsapp" name="whatsapp" type="tel" required maxlength="26" placeholder="+1 809 555 0100">
+          </div>
+          <p class="error" data-barbero-error role="alert"></p>
+          <button class="btn btn--principal" type="submit"><span class="btn__texto">Agregar barbero</span></button>
+        </form>
+      </div>
+
+      <div class="tarjeta">
         <h2 class="subtitulo">Horario de la semana</h2>
         <p class="suave">El miércoles puede ser «A domicilio». Si eliges «Por confirmar» o «Cerrado», ese día no se puede reservar.</p>
         <form data-form-horario novalidate>
           <div class="campo campo--corto">
             <label for="horario-barbero">Barbero</label>
-            <select id="horario-barbero"><option value="yeron">Yeron</option><option value="emilio">Emilio</option></select>
+            <select id="horario-barbero"></select>
           </div>
           <div data-filas-horario></div>
           <p class="error" data-horario-error role="alert"></p>

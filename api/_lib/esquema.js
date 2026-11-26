@@ -62,7 +62,35 @@ on conflict (dow) do nothing`,
   creado timestamptz not null default now()
 )`,
   String.raw`create index if not exists intentos_idx on intentos (tipo, ip, creado)`,
-  String.raw`create or replace function crear_cita_con_horario(
+  String.raw`create table if not exists barberos (
+  id text primary key,
+  nombre text not null check (char_length(nombre) between 2 and 60),
+  whatsapp text not null check (whatsapp ~ '^[1-9][0-9]{9,14}$'),
+  activo boolean not null default true
+)`,
+  String.raw`insert into barberos (id, nombre, whatsapp) values
+  ('yeron', 'Yeron', '18293374594'), ('emilio', 'Emilio', '18099691607')
+  on conflict (id) do nothing`,
+  String.raw`create table if not exists horario_barberos (
+  barbero text not null references barberos(id),
+  dow smallint not null check (dow between 0 and 6),
+  modo text not null check (modo in ('barberia','domicilio','cerrado','por_confirmar')),
+  abre smallint check (abre between 0 and 23),
+  cierra smallint check (cierra between 1 and 24),
+  primary key (barbero, dow),
+  check (modo <> 'domicilio' or dow = 3),
+  check (modo in ('cerrado','por_confirmar') or (abre is not null and cierra is not null and abre < cierra))
+)`,
+  String.raw`insert into horario_barberos (barbero, dow, modo, abre, cierra)
+  select 'yeron', dow, modo, abre, cierra from horario
+  union all select 'emilio', dow, modo, abre, cierra from horario_emilio
+  on conflict (barbero, dow) do nothing`,
+  String.raw`alter table citas drop constraint if exists citas_barbero_check`,
+  String.raw`do $$ begin
+  alter table citas add constraint citas_barbero_fk foreign key (barbero) references barberos(id);
+exception when duplicate_object then null;
+end $$`,
+  String.raw`create or replace function crear_cita_con_barbero(
   p_servicio text,
   p_fecha    date,
   p_hora     integer,
@@ -79,7 +107,7 @@ as $$
 declare
   v_local  timestamp := now() at time zone 'America/Santo_Domingo';
   v_hoy    date := v_local::date;
-  v_h      horario%rowtype;
+  v_h      horario_barberos%rowtype;
   v_nombre text := btrim(coalesce(p_nombre, ''));
   v_tel    text := btrim(coalesce(p_telefono, ''));
   v_digitos text := regexp_replace(coalesce(p_telefono, ''), '\D', '', 'g');
@@ -87,7 +115,8 @@ declare
   v_id     uuid;
   v_servicios text[];
 begin
-  if p_barbero is null or p_barbero not in ('yeron', 'emilio') then raise exception 'barbero_invalido'; end if;
+  perform 1 from barberos where id = p_barbero and activo for share;
+  if not found then raise exception 'barbero_inactivo'; end if;
   -- Uno o varios servicios (separados por coma), sin repetir y todos válidos.
   select array_agg(q.s order by q.o) into v_servicios from (
     select btrim(x) as s, min(o) as o from unnest(string_to_array(coalesce(p_servicio, ''), ',')) with ordinality as t(x, o) group by btrim(x)
@@ -99,11 +128,8 @@ begin
   if char_length(v_digitos) < 10 or char_length(v_digitos) > 15 then raise exception 'telefono_invalido'; end if;
   if p_fecha is null or p_fecha < v_hoy or p_fecha > v_hoy + 30 then raise exception 'fecha_invalida'; end if;
 
-  if p_barbero = 'emilio' then
-    select * into v_h from horario_emilio where dow = extract(dow from p_fecha)::smallint;
-  else
-    select * into v_h from horario where dow = extract(dow from p_fecha)::smallint;
-  end if;
+  select * into v_h from horario_barberos
+    where barbero = p_barbero and dow = extract(dow from p_fecha)::smallint for share;
   if not found or v_h.modo not in ('barberia', 'domicilio') then raise exception 'dia_no_disponible'; end if;
   if exists (select 1 from cierres where fecha = p_fecha) then raise exception 'dia_cerrado'; end if;
   if p_hora is null or p_hora < v_h.abre or p_hora >= v_h.cierra then raise exception 'hora_invalida'; end if;

@@ -26,7 +26,7 @@ export async function leerJson(req) {
 export const ipDe = (req) => String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'desconocida').split(',')[0].trim().slice(0, 64);
 
 const CODIGOS = new Set([
-  'servicio_invalido', 'nombre_invalido', 'telefono_invalido', 'fecha_invalida', 'dia_no_disponible', 'dia_cerrado',
+  'barbero_inactivo', 'servicio_invalido', 'nombre_invalido', 'telefono_invalido', 'fecha_invalida', 'dia_no_disponible', 'dia_cerrado',
   'hora_invalida', 'hora_pasada', 'servicio_no_disponible', 'sector_requerido', 'demasiadas_citas', 'hora_ocupada',
 ]);
 /** Convierte un error de la base en un código de la API, o null si no es uno conocido. */
