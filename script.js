@@ -372,6 +372,26 @@
     $('[data-avisos-lista]', cont).innerHTML = items.map((t) => `<li>${esc(t)}</li>`).join('');
     cont.hidden = items.length === 0;
   };
+  const aplicarWhatsappYeron = (numero) => {
+    if (typeof numero !== 'string' || !/^[1-9][0-9]{9,14}$/.test(numero)) return;
+    NEGOCIO.whatsapp = numero;
+    NEGOCIO.whatsappVisible = /^1[0-9]{10}$/.test(numero)
+      ? '+1 ' + numero.slice(1, 4) + '-' + numero.slice(4, 7) + '-' + numero.slice(7)
+      : '+' + numero;
+    document.querySelectorAll('[data-numero-yeron]').forEach((el) => { el.textContent = NEGOCIO.whatsappVisible; });
+    document.querySelectorAll('[data-copiar-whatsapp-yeron]').forEach((btn) => { btn.dataset.copiar = NEGOCIO.whatsappVisible; });
+    document.querySelectorAll('[data-whatsapp-yeron]').forEach((link) => {
+      const url = new URL(link.href);
+      url.pathname = '/' + numero;
+      link.href = url.href;
+    });
+    const schema = $('script[type="application/ld+json"]');
+    if (schema) {
+      const datos = JSON.parse(schema.textContent);
+      datos.telephone = '+' + numero;
+      schema.textContent = JSON.stringify(datos);
+    }
+  };
   const refrescarDatos = () => {
     pintarPrecios();
     pintarTabla();
@@ -389,6 +409,7 @@
     if (!enVivo) return;
     const { desde, hasta } = rangoFechas();
     const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
+    if (d) aplicarWhatsappYeron(d.whatsappYeron);
     if (d && Array.isArray(d.barberos)) barberosActivos = d.barberos;
     if (d && Array.isArray(d.horario)) aplicarHorario(d.horario);
     if (d && Array.isArray(d.ocupadas)) aplicarOcupadas(d.ocupadas);
@@ -398,6 +419,7 @@
     const { desde, hasta } = rangoFechas();
     const d = await api(`publico?desde=${desde}&hasta=${hasta}`);
     if (!d) return;
+    aplicarWhatsappYeron(d.whatsappYeron);
     if (Array.isArray(d.barberos)) barberosActivos = d.barberos;
     if (Array.isArray(d.horario) && d.horario.length) { aplicarHorario(d.horario); horarioEnVivo = true; }
     if (Array.isArray(d.cierres)) aplicarCierres(d.cierres);
@@ -1504,7 +1526,11 @@
     irA(1);
 
     return {
-      refrescar() { pintarBarberos(); if (st.paso === 2) renderDias(); },
+      refrescar() {
+        pintarBarberos();
+        if (st.paso === 2) renderDias();
+        if (st.paso === 4 && barbero() && st.fecha && st.hora !== null && !btnEnviar.classList.contains('is-loading')) renderResumen();
+      },
       preseleccionar(id) {
         if (!exito.hidden) reiniciar();
         const radio = $(`#srv-${id}`, form);
