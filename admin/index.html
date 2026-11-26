@@ -120,6 +120,7 @@
         <p class="suave">Quitar un barbero lo oculta de las nuevas reservas. Sus citas y su horario quedan guardados.</p>
         <div data-lista-barberos></div>
         <form data-form-barbero>
+          <input type="hidden" name="barbero">
           <div class="campo campo--corto">
             <label for="barbero-nombre">Nombre</label>
             <input id="barbero-nombre" name="nombre" required minlength="2" maxlength="60">
@@ -130,6 +131,7 @@
           </div>
           <p class="error" data-barbero-error role="alert"></p>
           <button class="btn btn--principal" type="submit"><span class="btn__texto">Agregar barbero</span></button>
+          <button class="btn btn--linea" type="button" data-cancelar-edicion-barbero hidden>Cancelar edición</button>
         </form>
       </div>
 

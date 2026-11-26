@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       }
 
       case 'ajustes': {
-        const [horario, config, barberos] = await Promise.all([
+        const [horario, barberos, config] = await Promise.all([
           consulta(HORARIOS),
           consulta('select id, nombre, whatsapp, activo from barberos order by nombre'),
           consulta('select domicilio_desde, aviso, aviso_activo from config where id = 1'),
@@ -90,11 +90,20 @@ export default async function handler(req, res) {
         return responder(res, 200, { ok: true });
       }
 
-      case 'barbero_agregar': {
+      case 'barbero_agregar':
+      case 'barbero_editar': {
         const nombre = typeof b.nombre === 'string' ? b.nombre.trim() : '';
         const whatsapp = typeof b.whatsapp === 'string' && /^[+0-9 ().-]+$/.test(b.whatsapp) ? b.whatsapp.replace(/[^0-9]/g, '') : '';
         if (nombre.length < 2 || nombre.length > 60 || !/^[1-9][0-9]{9,14}$/.test(whatsapp)) {
           return responder(res, 400, { error: 'datos' });
+        }
+        if (b.accion === 'barbero_editar') {
+          if (typeof b.barbero !== 'string' || !b.barbero) return responder(res, 400, { error: 'datos' });
+          const [barbero] = await consulta(
+            'update barberos set nombre = $2, whatsapp = $3 where id = $1 returning id, nombre, whatsapp, activo',
+            [b.barbero, nombre, whatsapp]);
+          if (!barbero) return responder(res, 404, { error: 'no_existe' });
+          return responder(res, 200, { barbero });
         }
         const [barbero] = await consulta(
           `with nuevo as (

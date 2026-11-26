@@ -254,14 +254,18 @@
     for (let x = desde; x <= hasta; x += 1) h += `<option value="${x}"${x === sel ? ' selected' : ''}>${hora12(x)}</option>`;
     return h;
   };
-  const pintarHorario = (seleccion) => {
+  const pintarBarberos = (seleccion) => {
     const selector = $('#horario-barbero');
     const anterior = seleccion || selector.value;
     selector.innerHTML = est.barberos.map((b) => `<option value="${esc(b.id)}">${esc(b.nombre)}${b.activo ? '' : ' (inactivo)'}</option>`).join('');
     selector.value = est.barberos.some((b) => b.id === anterior) ? anterior : est.barberos.find((b) => b.activo)?.id || est.barberos[0]?.id || '';
     $('[data-lista-barberos]').innerHTML = est.barberos.map((b) => `
       <p><strong>${esc(b.nombre)}</strong> · +${esc(b.whatsapp)} · ${b.activo ? 'Activo' : 'Inactivo'}
+      <button type="button" class="btn btn--chico btn--linea" data-editar-barbero="${esc(b.id)}">Editar</button>
       <button type="button" class="btn btn--chico ${b.activo ? 'btn--peligro' : 'btn--linea'}" data-estado-barbero="${esc(b.id)}">${b.activo ? 'Quitar' : 'Reactivar'}</button></p>`).join('');
+  };
+  const pintarHorario = (seleccion) => {
+    pintarBarberos(seleccion);
     const orden = [1, 2, 3, 4, 5, 6, 0];
     $('[data-filas-horario]').innerHTML = orden.map((dow) => {
       const f = est.horario.find((x) => x.dow === dow && (x.barbero || 'yeron') === $('#horario-barbero').value) || { dow, modo: 'por_confirmar', abre: null, cierra: null };
@@ -406,24 +410,67 @@
     });
 
     // Horario
-    $('[data-form-barbero]').addEventListener('submit', async (e) => {
+    const formBarbero = $('[data-form-barbero]');
+    const guardarBarbero = $('button[type="submit"]', formBarbero);
+    const cancelarEdicion = $('[data-cancelar-edicion-barbero]', formBarbero);
+    const errorBarbero = $('[data-barbero-error]', formBarbero);
+    const prepararBarbero = (b) => {
+      formBarbero.reset();
+      formBarbero.elements.barbero.value = b?.id || '';
+      formBarbero.elements.nombre.value = b?.nombre || '';
+      formBarbero.elements.whatsapp.value = b ? '+' + b.whatsapp : '';
+      $('.btn__texto', guardarBarbero).textContent = b ? 'Guardar cambios' : 'Agregar barbero';
+      cancelarEdicion.hidden = !b;
+      errorBarbero.textContent = '';
+    };
+    cancelarEdicion.addEventListener('click', () => {
+      const id = formBarbero.elements.barbero.value;
+      prepararBarbero();
+      $$('[data-editar-barbero]').find((b) => b.dataset.editarBarbero === id)?.focus();
+    });
+    formBarbero.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const f = e.currentTarget;
-      const btn = $('button[type="submit"]', f);
-      const err = $('[data-barbero-error]');
-      err.textContent = '';
-      cargando(btn, true);
+      if (guardarBarbero.disabled) return;
+      const campos = formBarbero.elements;
+      const id = campos.barbero.value;
+      const nombre = campos.nombre.value;
+      const whatsapp = campos.whatsapp.value;
+      errorBarbero.textContent = '';
+      cargando(guardarBarbero, true);
+      cancelarEdicion.disabled = true;
+      campos.nombre.disabled = campos.whatsapp.disabled = true;
       try {
-        const {barbero} = await llamar('barbero_agregar', { nombre: f.elements.nombre.value, whatsapp: f.elements.whatsapp.value });
-        f.reset();
-        await cargarHorarioConfig();
-        pintarHorario(barbero.id);
-        toast('Barbero agregado. Configura su horario.');
+        const { barbero } = await llamar(id ? 'barbero_editar' : 'barbero_agregar', { barbero: id, nombre, whatsapp });
+        prepararBarbero();
+        if (id) {
+          est.barberos = est.barberos.map((b) => b.id === id ? barbero : b);
+          pintarBarberos();
+          pintarCitas();
+          $$('[data-editar-barbero]').find((b) => b.dataset.editarBarbero === id)?.focus();
+          toast('Datos del barbero guardados.');
+        } else {
+          await cargarHorarioConfig();
+          pintarHorario(barbero.id);
+          toast('Barbero agregado. Configura su horario.');
+        }
       } catch (e) {
-        err.textContent = e.codigo === 'datos' ? 'Revisa el nombre y el WhatsApp con código de país.' : 'No se pudo agregar el barbero. Actualiza el panel y revisa la lista.';
-      } finally { cargando(btn, false); }
+        errorBarbero.textContent = e.codigo === 'datos' ? 'Revisa el nombre y el WhatsApp con código de país.' : 'No se pudieron guardar los datos. Actualiza el panel y revisa la lista.';
+      } finally {
+        cargando(guardarBarbero, false);
+        cancelarEdicion.disabled = false;
+        campos.nombre.disabled = campos.whatsapp.disabled = false;
+      }
     });
     $('[data-lista-barberos]').addEventListener('click', async (e) => {
+      const editar = e.target.closest('[data-editar-barbero]');
+      if (editar) {
+        if (guardarBarbero.disabled) return;
+        const b = est.barberos.find((item) => item.id === editar.dataset.editarBarbero);
+        if (!b) return;
+        prepararBarbero(b);
+        formBarbero.elements.nombre.focus();
+        return;
+      }
       const btn = e.target.closest('[data-estado-barbero]');
       if (!btn) return;
       const b = est.barberos.find((item) => item.id === btn.dataset.estadoBarbero);
