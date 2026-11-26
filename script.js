@@ -12,8 +12,8 @@
      ------------------------------------------------------------------------ */
   const NEGOCIO = {
     nombre: 'Yeron Barbershop',
-    whatsapp: '18296821198',               // wa.me: código de país + número, sin «+»
-    whatsappVisible: '+1 829-682-1198',
+    whatsapp: '18293374594',               // wa.me: código de país + número, sin «+»
+    whatsappVisible: '+1 829-337-4594',
     instagram: 'https://www.instagram.com/yeron_barber/',
     direccion: 'Av. Presidente Enríquez, al lado de Plaza Jorge, San Pedro de Macorís', // ortografía de la avenida: por confirmar
     domicilioDesde: 'RD$1,000',
